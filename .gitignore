@@ -1,6 +1,11 @@
-ashtonc/
+# Separate git repos
+
 blog/
 debate/
+home/
 ta/
 taiwan/
 
+# Static content from other git repos
+
+ashtonc-home-app/static/
