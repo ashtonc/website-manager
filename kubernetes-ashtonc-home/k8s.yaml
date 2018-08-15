@@ -49,9 +49,9 @@ metadata:
 spec:
   tls:
   - hosts:
-    - zihao.me
-    - www.zihao.me
-    secretName: zihao-tls
+    - ashtonc.ca
+    - www.ashtonc.ca
+    secretName: ashtonc-home-tls
   rules:
   - host: ashtonc.ca
     http:
