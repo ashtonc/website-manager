@@ -1,14 +1,16 @@
 runtime: go
 api_version: go1
 
+error_handlers:
+- file: static/404.html
+
 handlers:
 - url: /
   static_files: static/index.html
   upload: static/index.html
+  secure: always
 
 - url: /(.*)
   static_files: static/\1
   upload: static/(.*)
-
-error_handlers:
-- file: 404.html
+  secure: always

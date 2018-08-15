@@ -1,21 +1,23 @@
 # Variables
 
-home_bucket="www.ashtonc.ca"
-home_app_engine="ashtonc-home-app"
+home_bucket="ashtonc.ca"
+home_app_engine="app-engine-ashtonc-home"
+home_kubernetes="kubernetes-ashtonc-home"
 
-deploy_static=false
-deploy_app_engine=true
+deploy_static=true
+deploy_app_engine=false
+deploy_kubernetes=false
 
-# Static Site Bucket
+# Cloud Storage Bucket
 
 if [ "$deploy_static" = true ]; then
-	echo "Deploying to static bucket."
+	echo "Deploying to static bucket..."
 
 	echo "Syncing local files with bucket $home_bucket."
 
 	## Base home directory
-	echo "> Root..."
-	gsutil -m rsync -r -x ".git/" "ashtonc" "gs://$home_bucket"
+	echo "> Home..."
+	gsutil -m rsync -r -x ".git/" "home" "gs://$home_bucket"
 
 	## TA content
 	echo "> TA..."
@@ -30,20 +32,25 @@ if [ "$deploy_static" = true ]; then
 	## Blog content
 	#cd blog; hugo; cd ..
 	#gsutil -m rsync -r -x ".git/" "blog/public" "gs://$home_bucket/blog"
-
 fi
 
 # App Engine
 
 if [ "$deploy_app_engine" = true ]; then
-	echo "Deploying to app engine."
+	echo "Deploying to app engine..."
 
-	gcloud config set project ashtonc-home
-
-	rsync -r home/ $home_app_engine/static
-	#rsync /ta/public /$home_app_engine/static/ta
+	rsync -r "home/" "$home_app_engine/static"
 
 	cd $home_app_engine
-	gcloud app deploy -v 1
+	gcloud app deploy --version 1 --project=ashtonc-home
 	cd ..
 fi
+
+# Kubernetes
+
+if [ "$deploy_kubernetes" = true ]; then
+	echo "Deploying to Kubernetes..."
+
+	
+fi
+

@@ -1,0 +1,44 @@
+* Subdomains
+
+** Standard Subdomains
+
+ashtonc.ca
+plex.ashtonc.ca
+storage.ashtonc.ca
+home.ashtonc.ca
+download.ashtonc.ca
+anki.ashtonc.ca
+rss.ashtonc.ca
+music.ashtonc.ca
+books.ashtonc.ca
+repos.ashtonc.ca
+
+** Google Subdomains
+
+mail.ashtonc.ca
+docs.ashtonc.ca
+drive.ashtonc.ca
+calendar.ashtonc.ca
+
+
+* Subfolders
+
+ashtonc.ca/blog
+ashtonc.ca/taiwan
+ashtonc.ca/debate
+ashtonc.ca/ta
+
+storage.ashtonc.ca/books
+
+download.ashtonc.ca/sonarr
+download.ashtonc.ca/radarr
+download.ashtonc.ca/headphones
+download.ashtonc.ca/lidarr
+download.ashtonc.ca/seedbox
+
+
+* Redirects
+
+www.ashtonc.ca - ashtonc.ca
+ashtonc.ca/books - books.ashtonc.ca
+
