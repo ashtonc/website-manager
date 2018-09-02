@@ -1,12 +1,14 @@
 # Variables
 
 home_bucket="ashtonc.ca"
-home_app_engine="app-engine-ashtonc-home"
-home_kubernetes="kubernetes-ashtonc-home"
+test_bucket="ashtonc.com"
+cloud_project="ashtonc-home"
+app_engine_dir="app-engine-ashtonc-home"
+kubernetes_dir="kubernetes-ashtonc-home"
 
-deploy_static=true
+deploy_static=false
 deploy_app_engine=false
-deploy_kubernetes=false
+deploy_kubernetes=true
 
 # Cloud Storage Bucket
 
@@ -39,9 +41,9 @@ fi
 if [ "$deploy_app_engine" = true ]; then
 	echo "Deploying to app engine..."
 
-	rsync -r "home/" "$home_app_engine/static"
+	rsync -r "home/" "$app_engine_dir/static"
 
-	cd $home_app_engine
+	cd $app_engine_dir
 	gcloud app deploy --version 1 --project=ashtonc-home
 	cd ..
 fi
@@ -51,6 +53,11 @@ fi
 if [ "$deploy_kubernetes" = true ]; then
 	echo "Deploying to Kubernetes..."
 
-	
+	gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$test_bucket/deploy"
+	gsutil -m rsync -d -r -x ".git/" "home" "gs://$test_bucket/static"
+
+	cd $kubernetes_dir
+		kubectl apply -f k8s.yaml
+	cd ..
 fi
 

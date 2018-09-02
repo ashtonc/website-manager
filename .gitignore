@@ -1,5 +1,6 @@
 # Separate git repos
 
+ashtonc.ca/
 blog/
 debate/
 home/
@@ -9,3 +10,4 @@ taiwan/
 # Static content from other git repos
 
 app-engine-ashtonc-home/static/
+

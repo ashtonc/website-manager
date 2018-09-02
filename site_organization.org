@@ -42,3 +42,10 @@ download.ashtonc.ca/seedbox
 www.ashtonc.ca - ashtonc.ca
 ashtonc.ca/books - books.ashtonc.ca
 
+
+* References
+
+https://zihao.me/post/hosting-static-website-with-kubernetes-and-google-cloud-storage/
+https://danrl.com/blog/2017/my-blog-on-kubernetes/
+https://danrl.com/blog/2017/google-kubernetes-engine-and-lets-encrypt/
+
