@@ -1,0 +1,31 @@
+kind: Ingress
+apiVersion: extensions/v1beta1
+metadata:
+  name: ashtonc-home
+  annotations:
+    certmanager.k8s.io/cluster-issuer: "letsencrypt-staging"
+    ingress.kubernetes.io/ssl-redirect: "true"
+    kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/tls-acme: "true"
+spec:
+  rules:
+  - host: ashtonc.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: ashtonc-home
+          servicePort: 80
+  - host: www.ashtonc.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: ashtonc-home
+          servicePort: 80
+  tls:
+  - hosts:
+    - ashtonc.com
+    - www.ashtonc.com
+    secretName: ashtonc-home-tls
+

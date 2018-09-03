@@ -1,0 +1,14 @@
+kind: Service
+apiVersion: v1
+metadata:
+  name: ashtonc-home
+  labels:
+    app: ashtonc-home
+spec:
+  type: ClusterIP
+  selector:
+    app: ashtonc-home
+  ports:
+  - port: 80
+    targetPort: 8000
+
