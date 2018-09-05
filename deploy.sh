@@ -53,8 +53,8 @@ fi
 if [ "$deploy_kubernetes" = true ]; then
 	echo "Deploying to Kubernetes..."
 
-	export kubernetes_dir=kubernetes-ashtonc-home
-	export test_bucket=ashtonc.com
+	#export kubernetes_dir=kubernetes-ashtonc-home
+	#export test_bucket=ashtonc.com
 
 	# 1. Place your static files inside a bucket
 	gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$test_bucket/deploy"
@@ -73,26 +73,24 @@ if [ "$deploy_kubernetes" = true ]; then
 	kubectl apply -f $kubernetes_dir/helm/tiller.yaml
 	helm init --service-account tiller --upgrade
  
-	# 6. Use Helm to install cert-manager and add a cluster issuer
+	# 5. Use Helm to install cert-manager and add a cluster issuer
 	helm install stable/cert-manager --name cert-manager --set ingressShim.defaultIssuerName=letsencrypt-production --set ingressShim.defaultIssuerKind=ClusterIssuer --set ingressShim.defaultACMEChallengeType=dns01 --set ingressShim.defaultACMEDNS01ChallengeProvider=clouddns --namespace kube-system
 	kubectl apply -f $kubernetes_dir/tls/letsencrypt-production.yaml
 
-	# ?. Download the google compute engine service account secret and create a secret with it
+	# 6. Download the google compute engine service account secret and create a secret with it
 	kubectl create secret generic clouddns-service-account --from-file=$kubernetes_dir/tls/gce-service-account-key.json --namespace kube-system
 
-	# 5. Use Helm to install nginx-ingress
+	# 7. Use Helm to install nginx-ingress
 	helm install stable/nginx-ingress --name ashtonc-home-ingress --set rbac.create=true --namespace kube-system
 
-	# 6. Configure DNS to point to your nginx ingress controller (wait for this to propagate)
+	# 8. Configure DNS to point to your nginx ingress controller, one A record for root and one for www (wait for this to propagate)
 	kubectl get service -l app=nginx-ingress,component=controller -o=jsonpath='{$.items[*].status.loadBalancer.ingress[].ip}' -n kube-system | cut -d '=' -f 2 | sed 's/;$//'
 
-	# 8. Initialize your ingress
+	# 9. Initialize your ingress (for for the certificate to generate)
 	kubectl apply -f $kubernetes_dir/k8s/ingress.yaml
 
-	# 9. Initialize your deployment
+	# 10. Initialize your deployment and service
 	kubectl apply -f $kubernetes_dir/k8s/deployment.yaml
-
-	# 10. Initialize your service
 	kubectl apply -f $kubernetes_dir/k8s/service.yaml
 
 fi
