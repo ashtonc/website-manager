@@ -16,8 +16,8 @@ spec:
         imagePullPolicy: Always
         command: ["/bin/sh", "-c"]
         args:
-          - "wget https://storage.googleapis.com/ashtonc.com/deploy/proxy.conf -O /etc/nginx/proxy.conf && \
-            wget https://storage.googleapis.com/ashtonc.com/deploy/nginx.conf -O /etc/nginx/conf.d/default.conf && \
+          - "wget https://storage.googleapis.com/ashtonc.com/deploy/nginx.conf -O /etc/nginx/conf.d/default.conf && \
+            wget https://storage.googleapis.com/ashtonc.com/deploy/proxy.conf -O /etc/nginx/proxy.conf && \
             nginx -g 'daemon off;'"
         ports:
         - containerPort: 8000

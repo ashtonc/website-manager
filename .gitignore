@@ -11,3 +11,8 @@ taiwan/
 
 app-engine-ashtonc-home/static/
 
+# cert-manager
+
+cert-manager/
+gce-service-account-key.json
+

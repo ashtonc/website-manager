@@ -2,10 +2,10 @@ kind: Ingress
 apiVersion: extensions/v1beta1
 metadata:
   name: ashtonc-home
+  labels:
+    app: ashtonc-home
   annotations:
-    certmanager.k8s.io/cluster-issuer: "letsencrypt-staging"
-    ingress.kubernetes.io/ssl-redirect: "true"
-    kubernetes.io/ingress.class: "nginx"
+    kubernetes.io/ingress.class: nginx
     kubernetes.io/tls-acme: "true"
 spec:
   rules:
