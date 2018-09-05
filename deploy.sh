@@ -57,7 +57,7 @@ if [ "$deploy_kubernetes" = true ]; then
 	#export test_bucket=ashtonc.com
 
 	# 1. Place your static files inside a bucket
-	gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$test_bucket/deploy"
+	gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$test_bucket/deploy" # Push to master to update Dockerfile or trigger the build manually
 	gsutil -m rsync -d -r -x ".git/" "home" "gs://$test_bucket/static"
 
 	# 2. Create a cluster (online for now)
