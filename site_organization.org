@@ -3,21 +3,20 @@
 ** Standard Subdomains
 
 ashtonc.ca
-plex.ashtonc.ca
-storage.ashtonc.ca
-home.ashtonc.ca
-download.ashtonc.ca
 anki.ashtonc.ca
-rss.ashtonc.ca
-music.ashtonc.ca
 books.ashtonc.ca
+download.ashtonc.ca
+home.ashtonc.ca
+music.ashtonc.ca
+plex.ashtonc.ca
 repos.ashtonc.ca
+rss.ashtonc.ca
+storage.ashtonc.ca
 
 ** Google Subdomains
 
 mail.ashtonc.ca
 docs.ashtonc.ca
-drive.ashtonc.ca
 calendar.ashtonc.ca
 
 

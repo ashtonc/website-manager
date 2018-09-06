@@ -8,6 +8,13 @@ metadata:
     kubernetes.io/ingress.class: nginx
     kubernetes.io/tls-acme: "true"
 spec:
+  tls:
+  - hosts:
+    - ashtonc.ca
+    - '*.ashtonc.ca'
+    - ashtonc.com
+    - '*.ashtonc.com'
+    secretName: ashtonc-home-tls
   rules:
   - host: ashtonc.ca
     http:
@@ -16,16 +23,24 @@ spec:
         backend:
           serviceName: ashtonc-home
           servicePort: 80
-  - host: www.ashtonc.ca
+  - host: '*.ashtonc.ca'
     http:
       paths:
       - path: /
         backend:
           serviceName: ashtonc-home
           servicePort: 80
-  tls:
-  - hosts:
-    - ashtonc.ca
-    - www.ashtonc.ca
-    secretName: ashtonc-home-tls
-
+  - host: ashtonc.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: ashtonc-home
+          servicePort: 80
+  - host: '*.ashtonc.com'
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: ashtonc-home
+          servicePort: 80

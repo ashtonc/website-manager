@@ -7,12 +7,7 @@ home/
 ta/
 taiwan/
 
-# Static content from other git repos
+# cert-manager key
 
-app-engine-ashtonc-home/static/
-
-# cert-manager
-
-cert-manager/
 gce-service-account-key.json
 
