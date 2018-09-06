@@ -48,7 +48,7 @@ if [ "$deploy_kubernetes" = true ]; then
 	echo "Deploying to Kubernetes..."
 
 	#export home_bucket=ashtonc.ca
-	#export kubernetes_dir=ashtonc-home-kubernetes
+	#export kubernetes_dir=kubernetes-ashtonc-home
 
 	# 1. Place your static files inside a bucket
 	gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy" # Push to master to update Dockerfile or trigger the build manually
@@ -59,6 +59,7 @@ if [ "$deploy_kubernetes" = true ]; then
 	#- 3 nodes (micro)
 	#- Enable auto-upgrade
 	#- Allow GCE service account full access to cloud APIs
+	#- Boot disk size 10gb
 
 	# 3. Initialize the cluster locally
 	gcloud container clusters get-credentials ashtonc-home
