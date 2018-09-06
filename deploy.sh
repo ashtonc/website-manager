@@ -3,62 +3,56 @@
 home_bucket="ashtonc.ca"
 test_bucket="ashtonc.com"
 cloud_project="ashtonc-home"
-app_engine_dir="app-engine-ashtonc-home"
 kubernetes_dir="kubernetes-ashtonc-home"
 
-deploy_static=false
-deploy_app_engine=false
+hugo_build=true
+upload_static=true
+update_kubernetes_image=false
+
 deploy_kubernetes=false
 
-# Cloud Storage Bucket
-
-if [ "$deploy_static" = true ]; then
-	echo "Deploying to static bucket..."
-
-	echo "Syncing local files with bucket $home_bucket."
-
-	## Base home directory
-	echo "> Home..."
-	gsutil -m rsync -r -x ".git/" "home" "gs://$home_bucket"
-
-	## TA content
-	echo "> TA..."
-	cd ta; hugo; cd ..
-	gsutil -m rsync -r -x ".git/" "ta/public" "gs://$home_bucket/ta"
-
-	## Debate content
-	echo "> Debate..."
-	cd debate; hugo; cd ..
-	gsutil -m rsync -r -x ".git/" "debate/public" "gs://$home_bucket/debate"
-
-	## Blog content
-	#cd blog; hugo; cd ..
-	#gsutil -m rsync -r -x ".git/" "blog/public" "gs://$home_bucket/blog"
+if [ "$1" == "--silent" ]; then
+	silent=true
+else
+	silent=false
 fi
 
-# App Engine
+if [ "$hugo_build" = true ]; then
+	echo "Building sites with Hugo."
 
-if [ "$deploy_app_engine" = true ]; then
-	echo "Deploying to app engine..."
-
-	rsync -r "home/" "$app_engine_dir/static"
-
-	cd $app_engine_dir
-	gcloud app deploy --version 1 --project=ashtonc-home
-	cd ..
+	echo "> TA..."; hugo --source ta > /dev/null 2>&1
+	echo "> Debate..."; hugo --source debate > /dev/null 2>&1
+#	echo "> Blog..."; hugo --source blog > /dev/null 2>&1
 fi
 
-# Kubernetes
+if [ "$upload_static" = true ]; then
+	echo "Uploading static files to bucket $home_bucket."
+
+	echo "> Home..."; gsutil -m rsync -r -x ".git/" "home" "gs://$home_bucket/static" > /dev/null 2>&1
+	echo "> TA..."; gsutil -m rsync -r -x ".git/" "ta/public" "gs://$home_bucket/static/ta" > /dev/null 2>&1
+	echo "> Debate..."; gsutil -m rsync -r -x ".git/" "debate/public" "gs://$home_bucket/static/debate" > /dev/null 2>&1
+#	echo "> Blog..."; gsutil -m rsync -r -x ".git/" "blog/public" "gs://$home_bucket/blog" > /dev/null 2>&1
+fi
+
+if [ "$update_kubernetes_image" = true ]; then
+	echo "Updating Kubernetes image."
+
+	echo "> Syncing..."; gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy" > /dev/null 2>&1
+	echo "> Building..."; gcloud builds submit --tag "gcr.io/ashtonc-home/ashtonc-home:master" $kubernetes_dir > /dev/null 2>&1
+	echo "> Delete pods to update."; # Find better mechanism to update image (rolling update)
+fi
+
+# Kubernetes deployment instructions
 
 if [ "$deploy_kubernetes" = true ]; then
 	echo "Deploying to Kubernetes..."
 
-	#export kubernetes_dir=kubernetes-ashtonc-home
-	#export test_bucket=ashtonc.com
+	#export home_bucket=ashtonc.ca
+	#export kubernetes_dir=ashtonc-home-kubernetes
 
 	# 1. Place your static files inside a bucket
-	gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$test_bucket/deploy" # Push to master to update Dockerfile or trigger the build manually
-	gsutil -m rsync -d -r -x ".git/" "home" "gs://$test_bucket/static"
+	gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy" # Push to master to update Dockerfile or trigger the build manually
+	gsutil -m rsync -d -r -x ".git/" "home" "gs://$home_bucket/static"
 
 	# 2. Create a cluster (online for now)
 	#- Zonal (us-central)
@@ -86,12 +80,11 @@ if [ "$deploy_kubernetes" = true ]; then
 	# 8. Configure DNS to point to your nginx ingress controller, one A record for root and one for www (wait for this to propagate)
 	kubectl get service -l app=nginx-ingress,component=controller -o=jsonpath='{$.items[*].status.loadBalancer.ingress[].ip}' -n kube-system | cut -d '=' -f 2 | sed 's/;$//'
 
-	# 9. Initialize your ingress (for for the certificate to generate)
+	# 9. Initialize your ingress (wait for the certificate to generate)
 	kubectl apply -f $kubernetes_dir/k8s/ingress.yaml
 
 	# 10. Initialize your deployment and service
 	kubectl apply -f $kubernetes_dir/k8s/deployment.yaml
 	kubectl apply -f $kubernetes_dir/k8s/service.yaml
-
 fi
 
