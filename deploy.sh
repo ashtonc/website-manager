@@ -8,10 +8,9 @@ kubernetes_dir="kubernetes-ashtonc-home"
 hugo_build=true
 upload_static=true
 update_kubernetes_image=false
-
 deploy_kubernetes=false
 
-if [ "$1" == "--silent" ]; then
+if [ "$1" == "--silent" ] || [ "$1" == "-s" ]; then
 	silent=true
 else
 	silent=false
@@ -20,26 +19,39 @@ fi
 if [ "$hugo_build" = true ]; then
 	echo "Building sites with Hugo."
 
-	echo "> TA..."; hugo --source ta > /dev/null 2>&1
-	echo "> Debate..."; hugo --source debate > /dev/null 2>&1
-#	echo "> Blog..."; hugo --source blog > /dev/null 2>&1
+	if [ "$silent" = true ]; then
+		echo "> TA..."; hugo --source ta > /dev/null 2>&1
+		echo "> Debate..."; hugo --source debate > /dev/null 2>&1
+	#	echo "> Blog..."; hugo --source blog > /dev/null 2>&1
+	else
+		echo "> TA..."; hugo --source ta
+		echo "> Debate..."; hugo --source debate
+	#	echo "> Blog..."; hugo --source blog
+	fi
 fi
 
 if [ "$upload_static" = true ]; then
 	echo "Uploading static files to bucket $home_bucket."
 
-	echo "> Home..."; gsutil -m rsync -r -x ".git/" "home" "gs://$home_bucket/static" > /dev/null 2>&1
-	echo "> TA..."; gsutil -m rsync -r -x ".git/" "ta/public" "gs://$home_bucket/static/ta" > /dev/null 2>&1
-	echo "> Debate..."; gsutil -m rsync -r -x ".git/" "debate/public" "gs://$home_bucket/static/debate" > /dev/null 2>&1
-#	echo "> Blog..."; gsutil -m rsync -r -x ".git/" "blog/public" "gs://$home_bucket/blog" > /dev/null 2>&1
+	if [ "$silent" = true ]; then
+		echo "> Home..."; gsutil -m rsync -r -x ".git/" "home" "gs://$home_bucket/static" > /dev/null 2>&1
+		echo "> TA..."; gsutil -m rsync -r -x ".git/" "ta/public" "gs://$home_bucket/static/ta" > /dev/null 2>&1
+		echo "> Debate..."; gsutil -m rsync -r -x ".git/" "debate/public" "gs://$home_bucket/static/debate" > /dev/null 2>&1
+		#echo "> Blog..."; gsutil -m rsync -r -x ".git/" "blog/public" "gs://$home_bucket/blog" > /dev/null 2>&1
+	else
+		echo "> Home..."; gsutil -m rsync -r -x ".git/" "home" "gs://$home_bucket/static"
+		echo "> TA..."; gsutil -m rsync -r -x ".git/" "ta/public" "gs://$home_bucket/static/ta"
+		echo "> Debate..."; gsutil -m rsync -r -x ".git/" "debate/public" "gs://$home_bucket/static/debate"
+		#echo "> Blog..."; gsutil -m rsync -r -x ".git/" "blog/public" "gs://$home_bucket/blog"
+	fi
 fi
 
 if [ "$update_kubernetes_image" = true ]; then
 	echo "Updating Kubernetes image."
 
 	echo "> Syncing..."; gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy" > /dev/null 2>&1
-	echo "> Building..."; gcloud builds submit --tag "gcr.io/ashtonc-home/ashtonc-home:master" $kubernetes_dir > /dev/null 2>&1
-	echo "> Delete pods to update."; # Find better mechanism to update image (rolling update)
+	#echo "> Building..."; gcloud builds submit --tag "gcr.io/ashtonc-home/ashtonc-home:master" $kubernetes_dir > /dev/null 2>&1
+	#echo "> Delete pods to update."; # Find better mechanism to update image (rolling update)
 fi
 
 # Kubernetes deployment instructions

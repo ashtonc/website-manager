@@ -21,4 +21,6 @@ The initial idea for this deployment was inspired by [a blog post by Zihao Zhang
 
 - Remove the load balancer and set up NGINX-ingress as a Daemonset. The minimum load balancer pricing is a bit high for a personal website, though it is free for now. See [this](https://akomljen.com/aws-cost-savings-by-utilizing-kubernetes-ingress-with-classic-elb/) and [this](https://medium.com/containerum/how-to-launch-nginx-ingress-and-cert-manager-in-kubernetes-55b182a80c8f).
 - Set up the sites that some of the subdomains are intended for.
+- Hide everything behind a CDN.
+- Simplify the gcs_proxy.conf file.
 
