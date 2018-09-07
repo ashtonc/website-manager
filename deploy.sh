@@ -7,7 +7,7 @@ kubernetes_dir="kubernetes-ashtonc-home"
 
 hugo_build=true
 upload_static=true
-update_kubernetes_image=false
+update_kubernetes_image=true
 deploy_kubernetes=false
 
 if [ "$1" == "--silent" ] || [ "$1" == "-s" ]; then
@@ -49,9 +49,13 @@ fi
 if [ "$update_kubernetes_image" = true ]; then
 	echo "Updating Kubernetes image."
 
-	echo "> Syncing..."; gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy" > /dev/null 2>&1
-	#echo "> Building..."; gcloud builds submit --tag "gcr.io/ashtonc-home/ashtonc-home:master" $kubernetes_dir > /dev/null 2>&1
-	#echo "> Delete pods to update."; # Find better mechanism to update image (rolling update)
+	if [ "$silent" = true ]; then
+		echo "> Syncing NGINX config..."; gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy" > /dev/null 2>&1
+	else
+		echo "> Syncing NGINX config..."; gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy"
+	fi
+	#echo "> Building Docker image..."; gcloud builds submit --tag "gcr.io/ashtonc-home/ashtonc-home:master" $kubernetes_dir > /dev/null 2>&1
+	echo "> Delete pods to update."; # Find better mechanism to update image (rolling update)
 fi
 
 # Kubernetes deployment instructions
