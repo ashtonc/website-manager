@@ -7,7 +7,7 @@ kubernetes_dir="kubernetes-ashtonc-home"
 
 hugo_build=true
 upload_static=true
-update_kubernetes_image=true
+update_kubernetes_image=false
 deploy_kubernetes=false
 
 if [ "$1" == "--silent" ] || [ "$1" == "-s" ]; then
@@ -18,6 +18,8 @@ fi
 
 if [ "$hugo_build" = true ]; then
 	echo "Building sites with Hugo."
+
+	minify home/assets/css/default.css -o home/assets/css/default.min.css
 
 	if [ "$silent" = true ]; then
 		echo "> TA..."; hugo --source ta > /dev/null 2>&1
