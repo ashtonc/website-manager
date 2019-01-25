@@ -1,109 +1,280 @@
+#!/bin/bash
+
+#------------
+# Program
+#------------
+
+# Goals
+# - Deploy any of my web services simply
+# - Make it easy to redeploy any of my web services in case of failure
+
+# Todo
+# - Silence shell commands with -q flag
+
+# Notes
+# - Services List
+#     - Static
+#         - Root (home)
+#         - Blog
+#         - Debate
+#         - TA
+#     - Dynamic
+#         - Tiny Tiny RSS
+#         - Storage
+#         - Calibre Web
+#         - MPD
+# - Domains
+#     - ashtonc.ca (static)
+#     - rss.ashtonc.ca (tiny tiny rss)
+#     - storage.ashtonc.ca (file storage)
+#     - books.ashtonc.ca (calibre web)
+#     - music.ashtonc.ca (MPD)
+# - Redirects
+#     - ashtonc.com         --> ashtonc.ca
+#     - *.ashtonc.com       --> *.ashtonc.ca
+#     - *.ashtonc.ca        --> ashtonc.ca
+#     - calendar.ashtonc.ca --> CNAME to google calendar
+#     - mail.ashtonc.ca     --> CNAME to google mail
+#     - docs.ashtonc.ca     --> drive.google.com
+#     - repos.ashtonc.ca    --> source.cloud.google.com/repos
+#     - plex.ashtonc.ca     --> app.plex.tv
+
+#------------
+# Settings
+#------------
+
+#------------
 # Variables
+#------------
 
-home_bucket="ashtonc.ca"
-test_bucket="ashtonc.com"
-cloud_project="ashtonc-home"
-kubernetes_dir="kubernetes-ashtonc-home"
+PROGRAM_NAME="deploy.sh"
+VERSION="0.1.0-prerelease"
 
-hugo_build=true
-upload_static=true
-update_kubernetes_image=false
-deploy_kubernetes=false
+GOOGLE_CLOUD_PROJECT="ashtonc-home"
+GOOGLE_CLOUD_BUCKET="ashtonc.ca"
 
-if [ "$1" == "--silent" ] || [ "$1" == "-s" ]; then
-	silent=true
-else
-	silent=false
+MANAGER_DIRECTORY="/home/ashtonc/website-manager"
+SERVICES_DIRECTORY="$MANAGER_DIRECTORY/services"
+STATIC_DIRECTORY="$MANAGER_DIRECTORY/static"
+
+# Static
+ROOT_DIRECTORY="$STATIC_DIRECTORY/home"
+BLOG_DIRECTORY="$STATIC_DIRECTORY/blog"
+DEBATE_DIRECTORY="$STATIC_DIRECTORY/debate"
+TA_DIRECTORY="$STATIC_DIRECTORY/ta"
+TAIWAN_DIRECTORY="$STATIC_DIRECTORY/taiwan"
+
+# Services
+NGINX_DIRECTORY="$SERVICES_DIRECTORY/nginx"
+STORAGE_DIRECTORY="$SERVICES_DIRECTORY/storage"
+TTRSS_DIRECTORY="$SERVICES_DIRECTORY/ttrss"
+BOOKS_DIRECTORY="$SERVICES_DIRECTORY/books"
+MUSIC_DIRECTORY="$SERVICES_DIRECTORY/music"
+
+#------------
+# Arguments
+#------------
+
+# Action flags
+action_help=false
+action_version=false
+
+action_verify_project=false
+
+## Static
+action_build_root=false
+action_build_blog=false
+action_build_debate=false
+action_build_ta=false
+action_build_taiwan=false
+
+action_deploy_root=false
+action_deploy_blog=false
+action_deploy_debate=false
+action_deploy_ta=false
+action_deploy_taiwan=false
+
+## Services
+action_deploy_nginx=false
+action_deploy_storage=false
+action_deploy_ttrss=false
+action_deploy_books=false
+action_deploy_music=false
+
+# Options flags
+option_verbose=false
+option_quiet=false
+
+# Arguments collection loop
+positional_args=()
+argument_count=0
+while [[ $# -gt 0 ]]; do
+	argument="$1"
+	case $argument in
+		help|-h|--help)
+			action_help=true
+			shift
+		;;
+		version|--version)
+			action_version=true
+			shift
+		;;
+		-q|--quiet)
+			option_quiet=true
+			shift
+		;;
+		-v|--verbose)
+			option_verbose=true
+			shift
+		;;
+		*)
+			positional_args+=("$1")
+			shift
+		;;
+	esac
+	((argument_count++))
+done
+set -- "${positional_args[@]}"
+
+# Default action
+if [ "$argument_count" = 0 ]; then
+	action_help=true
 fi
 
-if [ "$hugo_build" = true ]; then
-	echo "Building sites with Hugo."
+# Verbose takes precedence over quiet
+if [ "$option_verbose" = "true" ]; then
+	option_quiet=false
+fi
 
-	minify home/assets/css/default.css -o home/assets/css/default.min.css
+#------------
+# Functions
+#------------
 
-	if [ "$silent" = true ]; then
-		echo "> TA..."; hugo --source ta > /dev/null 2>&1
-		echo "> Debate..."; hugo --source debate > /dev/null 2>&1
-	#	echo "> Blog..."; hugo --source blog > /dev/null 2>&1
+echo_quiet()
+{
+	if [ "$option_quiet" != true ]; then
+		echo -e "$1"
+	fi
+}
+
+echo_verbose()
+{
+	if [ "$option_verbose" = true ]; then
+		echo -e "$1"
+	fi
+}
+
+#------------
+# Script
+#------------
+
+# Print usage/help information
+if [ "$action_help" = "true" ]; then
+	echo -e "\e[1mUSAGE\e[0m:"
+	echo -e "    $PROGRAM_NAME (help | -h | --help)"
+	echo -e "    $PROGRAM_NAME (version | --version)"
+	echo -e "\n\e[1mOPTIONS\e[0m:"
+	echo -e "    -q --quiet       Quiet ouput"
+	echo -e "    -v --verbose     Verbose output"
+fi
+
+# Print version information
+if [ "$action_version" = "true" ]; then
+	echo -e "\e[1mVersion\e[0m: $VERSION"
+fi
+
+# Verifying correct Google Cloud Project
+if [ "$action_verify_project" = "true" ]; then
+	current_google_cloud_project=$(gcloud config get-value project 2>/dev/null)
+
+	if [ "$current_google_cloud_project" = "$GOOGLE_CLOUD_PROJECT" ]; then
+		echo_verbose "Correctly using Google Cloud Project \e[1m$current_google_cloud_project\e[0m."
 	else
-		echo "> TA..."; hugo --source ta
-		echo "> Debate..."; hugo --source debate
-	#	echo "> Blog..."; hugo --source blog
+		echo -e "Currently using Google Cloud Project \e[1m$current_google_cloud_project\e[0m, which does not match the expected project \e[1m$GOOGLE_CLOUD_PROJECT\e[0m."
+		exit 1
 	fi
 fi
 
-if [ "$upload_static" = true ]; then
-	echo "Uploading static files to bucket $home_bucket."
+# Build root
+if [ "$action_build_root" = "true" ]; then
+	echo_quiet "\e[1mBuilding root...\e[0m"
 
-	if [ "$silent" = true ]; then
-		echo "> Home..."; gsutil -m rsync -r -x ".git/" "home" "gs://$home_bucket/static" > /dev/null 2>&1
-		echo "> TA..."; gsutil -m rsync -r -x ".git/" "ta/public" "gs://$home_bucket/static/ta" > /dev/null 2>&1
-		echo "> Debate..."; gsutil -m rsync -r -x ".git/" "debate/public" "gs://$home_bucket/static/debate" > /dev/null 2>&1
-		#echo "> Blog..."; gsutil -m rsync -r -x ".git/" "blog/public" "gs://$home_bucket/blog" > /dev/null 2>&1
-	else
-		echo "> Home..."; gsutil -m rsync -r -x ".git/" "home" "gs://$home_bucket/static"
-		echo "> TA..."; gsutil -m rsync -r -x ".git/" "ta/public" "gs://$home_bucket/static/ta"
-		echo "> Debate..."; gsutil -m rsync -r -x ".git/" "debate/public" "gs://$home_bucket/static/debate"
-		#echo "> Blog..."; gsutil -m rsync -r -x ".git/" "blog/public" "gs://$home_bucket/blog"
-	fi
+	echo_verbose "> Minifying assets..."
+	minify $ROOT_DIRECTORY/assets/css/default.css -o $ROOT_DIRECTORY/assets/css/default.min.css
 fi
 
-if [ "$update_kubernetes_image" = true ]; then
-	echo "Updating Kubernetes image."
+# Build blog
+if [ "$action_build_blog" = "true" ]; then
+	echo_quiet "\e[1mBuilding blog...\e[0m"
 
-	if [ "$silent" = true ]; then
-		echo "> Syncing NGINX config..."; gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy" > /dev/null 2>&1
-	else
-		echo "> Syncing NGINX config..."; gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy"
-	fi
-	#echo "> Building Docker image..."; gcloud builds submit --tag "gcr.io/ashtonc-home/ashtonc-home:master" $kubernetes_dir > /dev/null 2>&1
-	echo "> Delete pods to update."; # Find better mechanism to update image (rolling update)
+	echo_verbose "> Running Hugo..."
+	hugo --source $BLOG_DIRECTORY
 fi
 
-# Kubernetes deployment instructions
+# Build debate
+if [ "$action_build_debate" = "true" ]; then
+	echo_quiet "\e[1mBuilding debate...\e[0m"
 
-if [ "$deploy_kubernetes" = true ]; then
-	echo "Deploying to Kubernetes..."
-
-	#export home_bucket=ashtonc.ca
-	#export kubernetes_dir=kubernetes-ashtonc-home
-
-	# 1. Place your static files inside a bucket
-	gsutil -m rsync -d "$kubernetes_dir/nginx" "gs://$home_bucket/deploy" # Push to master to update Dockerfile or trigger the build manually
-	gsutil -m rsync -d -r -x ".git/" "home" "gs://$home_bucket/static"
-
-	# 2. Create a cluster (online for now)
-	#- Zonal (us-central)
-	#- 3 nodes (micro)
-	#- Enable auto-upgrade
-	#- Allow GCE service account full access to cloud APIs
-	#- Boot disk size 10gb
-
-	# 3. Initialize the cluster locally
-	gcloud container clusters get-credentials ashtonc-home
-
-	# 4. Install Helm on your cluster
-	kubectl apply -f $kubernetes_dir/helm/tiller.yaml
-	helm init --service-account tiller --upgrade
- 
-	# 5. Use Helm to install cert-manager and add a cluster issuer
-	helm install stable/cert-manager --name cert-manager --set ingressShim.defaultIssuerName=letsencrypt-production --set ingressShim.defaultIssuerKind=ClusterIssuer --set ingressShim.defaultACMEChallengeType=dns01 --set ingressShim.defaultACMEDNS01ChallengeProvider=clouddns --namespace kube-system
-	kubectl apply -f $kubernetes_dir/tls/letsencrypt-production.yaml
-
-	# 6. Download the google compute engine service account secret and create a secret with it
-	kubectl create secret generic clouddns-service-account --from-file=$kubernetes_dir/tls/gce-service-account-key.json --namespace kube-system
-
-	# 7. Use Helm to install nginx-ingress
-	helm install stable/nginx-ingress --name ashtonc-home-ingress --set rbac.create=true --namespace kube-system
-
-	# 8. Configure DNS to point to your nginx ingress controller, one A record for root and one for www (wait for this to propagate)
-	kubectl get service -l app=nginx-ingress,component=controller -o=jsonpath='{$.items[*].status.loadBalancer.ingress[].ip}' -n kube-system | cut -d '=' -f 2 | sed 's/;$//'
-
-	# 9. Initialize your ingress (wait for the certificate to generate)
-	kubectl apply -f $kubernetes_dir/k8s/ingress.yaml
-
-	# 10. Initialize your deployment and service
-	kubectl apply -f $kubernetes_dir/k8s/deployment.yaml
-	kubectl apply -f $kubernetes_dir/k8s/service.yaml
+	echo_verbose "> Running Hugo..."
+	hugo --source $DEBATE_DIRECTORY
 fi
+
+# Build TA
+if [ "$action_build_ta" = "true" ]; then
+	echo_quiet "\e[1mBuilding TA...\e[0m"
+
+	echo_verbose "> Running Hugo..."
+	hugo --source $TA_DIRECTORY
+fi
+
+# Build taiwan blog
+if [ "$action_build_taiwan" = "true" ]; then
+	echo_quiet "\e[1mBuilding Taiwan blog...\e[0m"
+
+	echo_verbose "> Running Jekyll..."
+	# jekyll
+fi
+
+# Deploy root
+if [ "$action_deploy_root" = "true" ]; then
+	echo_quiet "\e[1mDeploying root...\e[0m"
+
+	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
+	gsutil -m rsync -r -x ".git/" "$ROOT_DIRECTORY" "gs://$GOOGLE_CLOUD_BUCKET/static"
+fi
+
+# Deploy blog
+if [ "$action_deploy_blog" = "true" ]; then
+	echo_quiet "\e[1mDeploying blog...\e[0m"
+
+	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
+	gsutil -m rsync -r -x ".git/" "$BLOG_DIRECTORY/public" "gs://$GOOGLE_CLOUD_BUCKET/static/blog"
+fi
+
+# Deploy debate
+if [ "$action_deploy_debate" = "true" ]; then
+	echo_quiet "\e[1mDeploying debate...\e[0m"
+
+	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
+	gsutil -m rsync -r -x ".git/" "$DEBATE_DIRECTORY/public" "gs://$GOOGLE_CLOUD_BUCKET/static/debate"
+fi
+
+# Deploy TA
+if [ "$action_deploy_ta" = "true" ]; then
+	echo_quiet "\e[1mDeploying TA...\e[0m"
+
+	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
+	gsutil -m rsync -r -x ".git/" "$TA_DIRECTORY/public" "gs://$GOOGLE_CLOUD_BUCKET/static/ta"
+fi
+
+# Deploy taiwan blog
+if [ "$action_deploy_taiwan" = "true" ]; then
+	echo_quiet "\e[1mDeploying taiwan blog...\e[0m"
+
+	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
+	gsutil -m rsync -r -x ".git/" "$TAIWAN_DIRECTORY/_site" "gs://$GOOGLE_CLOUD_BUCKET/static/taiwan"
+fi
+
+# Exit with success
+exit 0
 

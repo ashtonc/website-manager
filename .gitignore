@@ -1,5 +1,4 @@
 # Separate git repos
-
 root/
 blog/
 debate/
@@ -8,6 +7,5 @@ ta/
 taiwan/
 
 # cert-manager key
-
 gce-service-account-key.json
 
