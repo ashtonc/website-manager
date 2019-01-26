@@ -1,4 +1,4 @@
-# Separate git repos
+# Separate git repositories
 root/
 blog/
 debate/
@@ -6,6 +6,12 @@ home/
 ta/
 taiwan/
 
-# cert-manager key
+# Cert-manager key
 gce-service-account-key.json
 
+# Cloudflare Origin Certificate
+origin.pem
+origin.key
+
+# Docker images
+docker-images/
