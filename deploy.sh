@@ -11,6 +11,7 @@
 # Todo
 # - Silence shell commands with -q flag
 # - Proper WAL backups of postgres db with barman or wal-e or something
+# - Graceful handling of unexpected build/deploy targets
 
 # Notes
 # - Services List
@@ -164,7 +165,6 @@ while [[ $# -gt 0 ]]; do
 			shift
 		;;
 		deploy|-d|--deploy)
-			action_verify_project=true
 			action_deploy_target="$2"
 			shift
 			shift
@@ -185,6 +185,25 @@ while [[ $# -gt 0 ]]; do
 	((argument_count++))
 done
 set -- "${positional_args[@]}"
+
+
+case $action_build_target in
+	nginx) action_build_nginx=true;;
+	storage) action_build_storage=true;;
+	rss|ttrss) action_build_ttrss=true;;
+	books|calibre) action_build_books=true;;
+	music|mpd) action_build_music=true;;
+	*) echo -e "Invalid build target.";;
+esac
+
+case $action_deploy_target in
+	nginx) action_deploy_nginx=true;;
+	storage) action_deploy_storage=true;;
+	rss|ttrss) action_deploy_ttrss=true;;
+	books|calibre) action_deploy_books=true;;
+	music|mpd) action_deploy_music=true;;
+	*) echo -e "Invalid deploy target.";;
+esac
 
 # Default action
 if [ "$argument_count" = 0 ]; then
