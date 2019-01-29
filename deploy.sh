@@ -10,6 +10,7 @@
 
 # Todo
 # - Silence shell commands with -q flag
+# - Proper WAL backups of postgres db with barman or wal-e or something
 
 # Notes
 # - Services List
@@ -24,12 +25,16 @@
 #         - Storage
 #         - Calibre Web
 #         - MPD
+#         - UniFi controller
+#     - Backend
+#         - Postgres
 # - Domains
-#     - ashtonc.ca (static)
-#     - rss.ashtonc.ca (tiny tiny rss)
+#     - ashtonc.ca (static gcloud files)
+#     - rss.ashtonc.ca (Tiny Tiny RSS)
 #     - storage.ashtonc.ca (file storage)
-#     - books.ashtonc.ca (calibre web)
+#     - books.ashtonc.ca (Calibre Web)
 #     - music.ashtonc.ca (MPD)
+#     - unifi.ashtonc.ca (UniFi Controller)
 # - Redirects
 #     - ashtonc.com         --> ashtonc.ca
 #     - *.ashtonc.com       --> *.ashtonc.ca
@@ -53,11 +58,15 @@ VERSION="0.1.0-prerelease"
 
 GOOGLE_CLOUD_PROJECT="ashtonc-home"
 GOOGLE_CLOUD_BUCKET="ashtonc.ca"
+SERVER_NAME="ac-serf"
+SERVER_USERNAME="ashtonc"
 
+# Folders
 MANAGER_DIRECTORY="/home/ashton/website-manager"
 SERVICES_DIRECTORY="$MANAGER_DIRECTORY/services"
 STATIC_DIRECTORY="$MANAGER_DIRECTORY/static"
 DOCKER_IMAGES_DIRECTORY="$MANAGER_DIRECTORY/docker-images"
+SECRETS_DIRECTORY="$MANAGER_DIRECTORY/secrets"
 
 # Static
 ROOT_DIRECTORY="$STATIC_DIRECTORY/home"
@@ -75,6 +84,13 @@ MUSIC_DIRECTORY="$SERVICES_DIRECTORY/music"
 
 # Docker Images
 NGINX_DOCKER_IMAGE_NAME="ashtonc-nginx"
+TTRSS_DOCKER_IMAGE_NAME="ashtonc-ttrss"
+BOOKS_DOCKER_IMAGE_NAME="ashtonc-calibre-web"
+MUSIC_DOCKER_IMAGE_NAME="ashtonc-mpd"
+POSTGRES_DOCKER_IMAGE_NAME="ashtonc-postgres"
+
+# Secrets
+SECRETS_FILE="$SECRETS_DIRECTORY/secrets-template.json"
 
 #------------
 # Arguments
@@ -113,6 +129,16 @@ action_deploy_storage=false
 action_deploy_ttrss=false
 action_deploy_books=false
 action_deploy_music=false
+
+action_deploy_postgres=false
+action_backup_postgres=false
+action_restore_postgres=false
+
+action_test_nginx=false
+
+## Other
+action_send_images=false
+action_send_secrets=false
 
 # Options flags
 option_verbose=false
@@ -233,6 +259,22 @@ if [ "$action_verify_project" = "true" ]; then
 	fi
 fi
 
+# Setup
+if [ "$action_server_setup" = "true" ]; then
+	apt-get install sudo
+	apt-get install git
+	apt-get install tree
+	apt-get install docker
+
+	update-alternatives --config editor
+	
+	adduser $SERVER_USERNAME
+	usermod -aG sudo $SERVER_USERNAME
+
+	su $SERVER_USERNAME
+	git clone https://github.com/ashtonc/website-manager
+fi
+
 # Site Root
 if [ "$action_build_root" = "true" ]; then
 	echo_quiet "\e[1mBuilding root...\e[0m"
@@ -328,11 +370,82 @@ if [ "$action_build_nginx" = "true" ]; then
 	docker save "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" -o "$DOCKER_IMAGES_DIRECTORY/$NGINX_DOCKER_IMAGE_NAME.tar"
 fi
 
-if [ "$action_fi_nginx" = "true" ]; then
+if [ "$action_deploy_nginx" = "true" ]; then
 	echo_quiet "\e[1mDeploying NGINX image...\e[0m"
 
 	echo_verbose "> Loading NGINX image from disk..."
 	docker load -i "$DOCKER_IMAGES_DIRECTORY/$NGINX_DOCKER_IMAGE_NAME.tar"
+
+	echo_verbose "> Starting NGINX..."
+	docker run -d --name ashtonc-nginx -p 443:443 "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" nginx -g 'daemon off;'
+fi
+
+if [ "$action_test_nginx" = "true" ]; then
+	echo_quiet "\e[1mTesting NGINX image...\e[0m"
+
+	#nginx -c "$NGINX_DIRECTORY/conf.d/ashtonc.ca.conf" -t
+	#nginx -c "$NGINX_DIRECTORY/conf.d/redirects.conf" -t
+	#nginx -c "$NGINX_DIRECTORY/conf.d/books.ashtonc.ca.conf" -t
+	#nginx -c "$NGINX_DIRECTORY/conf.d/music.ashtonc.ca.conf" -t
+	#nginx -c "$NGINX_DIRECTORY/conf.d/rss.ashtonc.ca.conf" -t
+	#nginx -c "$NGINX_DIRECTORY/conf.d/storage.ashtonc.ca.conf" -t
+
+	#echo_verbose "> Uploading configuration to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
+	#gsutil -m rsync -r -x "Dockerfile|certificates/" "$NGINX_DIRECTORY" "gs://$GOOGLE_CLOUD_BUCKET/deploy/nginx"
+
+	echo_verbose "> Building NGINX image from Dockerfile..."
+	#gcloud builds submit --tag "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME" "$NGINX_DIRECTORY"
+
+	echo_verbose "> Pulling NGINX image from Google Container Registry..."
+	#docker pull "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest"
+
+	echo_verbose "> Running NGINX image..."
+	docker run ---name ashtonc-nginx -p 443:443 "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" nginx -g 'daemon off;'
+fi
+
+# PostgreSQL
+if [ "$action_deploy_postgres" = "true" ]; then
+	echo_quiet "\e[1mDeploying PostgreSQL image...\e[0m"
+
+	echo_verbose "> Pulling postgres image..."
+	docker pull postgres:latest
+
+	echo_verbose "> Reading secrets..."
+	POSTGRES_PASSWORD=$(jq -r '.postgres.password' $SECRETS_FILE)
+
+	echo_verbose "> Starting postgres..."
+	docker run --name $POSTGRES_DOCKER_IMAGE_NAME -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD -d postgres
+
+fi
+
+if [ "$action_backup_postgres" = "true" ]; then
+	echo_quiet "\e[1mBacking up PostgreSQL database...\e[0m"
+
+	echo_verbose "> Backing up PostgreSQL database..."
+	#docker exec -t $POSTGRES_DOCKER_IMAGE_NAME pg_dumpall -c -U postgres > dump_`date +%d-%m-%Y"_"%H_%M_%S`.sql
+	#docker exec -t $POSTGRES_DOCKER_IMAGE_NAME pg_dumpall -c -U postgres | gzip > dump_`date +%d-%m-%Y"_"%H_%M_%S`.sql.gz
+fi
+
+if [ "$action_restore_postgres" = "true" ]; then
+	echo_quiet "\e[1mRestoring PostgreSQL database...\e[0m"
+
+	dump_file="dump.sql"
+	dump_file_compressed="dump.sql.gz"
+
+	echo_verbose "> Restoring PostgreSQL database from $dump_file..."
+	#cat $dump_file | docker exec -i your-db-container psql -U postgres
+	#gunzip $dump_file | docker exec -i your-db-container psql -U postgres
+fi
+
+# Send files
+if [ "$action_send_images" = "true" ]; then
+	echo_quiet "\e[1mSending Docker images to the server...\e[0m"
+	rsync -v -azP --delete --rsh=ssh $DOCKER_IMAGES_DIRECTORY/ $SERVER_NAME:/home/$SERVER_USERNAME/website-manager/docker-images
+fi
+
+if [ "$action_send_secrets" = "true" ]; then
+	echo_quiet "\e[1mSending secrets to the server...\e[0m"
+	rsync -v -azP --delete --rsh=ssh $SECRETS_DIRECTORY/ $SERVER_NAME:/home/$SERVER_USERNAME/website-manager/secrets
 fi
 
 # Exit with success
