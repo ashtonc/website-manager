@@ -169,6 +169,11 @@ while [[ $# -gt 0 ]]; do
 			shift
 			shift
 		;;
+		send|-s|--send)
+			action_send_target="$2"
+			shift
+			shift
+		;;
 		-q|--quiet)
 			option_quiet=true
 			shift
@@ -203,6 +208,13 @@ case $action_deploy_target in
 	books|calibre) action_deploy_books=true;;
 	music|mpd) action_deploy_music=true;;
 	*) echo -e "Invalid deploy target.";;
+esac
+
+case $action_send_target in
+	docker|images) action_send_images=true;;
+	secrets|secret) action_send_secrets=true;;
+	manager) action_send_manager=true;;
+	*) echo -e "Invalid send target.";;
 esac
 
 # Default action
@@ -280,18 +292,31 @@ fi
 
 # Setup
 if [ "$action_server_setup" = "true" ]; then
-	apt-get install sudo
-	apt-get install git
-	apt-get install tree
-	apt-get install docker
+	# Basic utilities
+	apt-get install sudo git tree
 
+	# Set to vim
 	update-alternatives --config editor
-	
+
+	# New user
 	adduser $SERVER_USERNAME
 	usermod -aG sudo $SERVER_USERNAME
+	#su $SERVER_USERNAME
+	#whoami; sudo whoami; exit
 
+	# Get website-manager
 	su $SERVER_USERNAME
 	git clone https://github.com/ashtonc/website-manager
+
+	# Get docker
+	sudo apt-get install apt-transport-https ca-certificates curl gnupg2 software-properties-common
+	curl -fsSL https://download.docker.com/linux/debian/gpg | sudo apt-key add -
+	#sudo apt-key fingerprint 0EBFCD88
+	sudo add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/debian $(lsb_release -cs) stable"
+	sudo apt-get update
+	sudo apt-get install docker-ce
+	#docker run hello-world
+	#docker ps
 fi
 
 # Site Root
@@ -393,7 +418,11 @@ if [ "$action_deploy_nginx" = "true" ]; then
 	echo_quiet "\e[1mDeploying NGINX image...\e[0m"
 
 	echo_verbose "> Loading NGINX image from disk..."
-	docker load -i "$DOCKER_IMAGES_DIRECTORY/$NGINX_DOCKER_IMAGE_NAME.tar"
+	docker load -i "/home/$SERVER_USERNAME/website-manager/docker-images/$NGINX_DOCKER_IMAGE_NAME.tar"
+
+	echo_verbose "> Stopping current NGINX image..."
+	docker stop $NGINX_DOCKER_IMAGE_NAME
+	docker rm $NGINX_DOCKER_IMAGE_NAME
 
 	echo_verbose "> Starting NGINX..."
 	docker run -d --name ashtonc-nginx -p 443:443 "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" nginx -g 'daemon off;'
@@ -465,6 +494,11 @@ fi
 if [ "$action_send_secrets" = "true" ]; then
 	echo_quiet "\e[1mSending secrets to the server...\e[0m"
 	rsync -v -azP --delete --rsh=ssh $SECRETS_DIRECTORY/ $SERVER_NAME:/home/$SERVER_USERNAME/website-manager/secrets
+fi
+
+if [ "$action_send_manager" = "true" ]; then
+	echo_quiet "\e[1mSending manager to the server...\e[0m"
+	rsync -v -azP --delete --rsh=ssh --exclude ".git/" $MANAGER_DIRECTORY/ $SERVER_NAME:/home/$SERVER_USERNAME/website-manager
 fi
 
 # Exit with success
