@@ -12,7 +12,7 @@ ADD conf.d/books.ashtonc.ca.conf /etc/nginx/conf.d/books.ashtonc.ca.conf
 ADD conf.d/music.ashtonc.ca.conf /etc/nginx/conf.d/music.ashtonc.ca.conf
 
 # Additional parameters
-ADD gcs_proxy_parameters /etc/nginx/gcs_proxy_parameters
+ADD headers/gcs_proxy_parameters /etc/nginx/gcs_proxy_parameters
 
 # Origin and client certificates
 ADD certificates/ashtonc.ca-origin.pem /etc/nginx/certificates/ashtonc.ca-origin.pem

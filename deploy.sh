@@ -101,9 +101,13 @@ SECRETS_FILE="$SECRETS_DIRECTORY/secrets-template.json"
 action_help=false
 action_version=false
 
+## Verification steps
 action_verify_project=false
+
+## Targets
 action_build_target=""
 action_deploy_target=""
+action_send_target=""
 
 ## Static
 action_build_root=false
@@ -191,32 +195,6 @@ while [[ $# -gt 0 ]]; do
 done
 set -- "${positional_args[@]}"
 
-
-case $action_build_target in
-	nginx) action_build_nginx=true;;
-	storage) action_build_storage=true;;
-	rss|ttrss) action_build_ttrss=true;;
-	books|calibre) action_build_books=true;;
-	music|mpd) action_build_music=true;;
-	*) echo -e "Invalid build target.";;
-esac
-
-case $action_deploy_target in
-	nginx) action_deploy_nginx=true;;
-	storage) action_deploy_storage=true;;
-	rss|ttrss) action_deploy_ttrss=true;;
-	books|calibre) action_deploy_books=true;;
-	music|mpd) action_deploy_music=true;;
-	*) echo -e "Invalid deploy target.";;
-esac
-
-case $action_send_target in
-	docker|images) action_send_images=true;;
-	secrets|secret) action_send_secrets=true;;
-	manager) action_send_manager=true;;
-	*) echo -e "Invalid send target.";;
-esac
-
 # Default action
 if [ "$argument_count" = 0 ]; then
 	action_help=true
@@ -225,6 +203,41 @@ fi
 # Verbose takes precedence over quiet
 if [ "$option_verbose" = "true" ]; then
 	option_quiet=false
+fi
+
+#------------
+# Targets
+#------------
+
+if [ "$action_build_target" != "" ]; then
+	case $action_build_target in
+		nginx) action_build_nginx=true;;
+		storage) action_build_storage=true;;
+		rss|ttrss) action_build_ttrss=true;;
+		books|calibre) action_build_books=true;;
+		music|mpd) action_build_music=true;;
+		*) echo -e "Invalid build target.";;
+	esac
+fi
+
+if [ "$action_deploy_target" != "" ]; then
+	case $action_deploy_target in
+		nginx) action_deploy_nginx=true;;
+		storage) action_deploy_storage=true;;
+		rss|ttrss) action_deploy_ttrss=true;;
+		books|calibre) action_deploy_books=true;;
+		music|mpd) action_deploy_music=true;;
+		*) echo -e "Invalid deploy target.";;
+	esac
+fi
+
+if [ "$action_send_target" != "" ]; then
+	case $action_send_target in
+		docker|images) action_send_images=true;;
+		secrets|secret) action_send_secrets=true;;
+		manager) action_send_manager=true;;
+		*) echo -e "Invalid send target.";;
+	esac
 fi
 
 #------------
