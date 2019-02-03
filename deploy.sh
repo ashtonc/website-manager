@@ -1,6 +1,37 @@
 #!/bin/bash
 
 #------------
+# Help
+#------------
+
+read -r -d '' HELP_TEXT <<- EOM
+	\e[1mUSAGE\e[0m:
+	    $PROGRAM_NAME (help | -h | --help)
+	    $PROGRAM_NAME (version | --version)
+	    $PROGRAM_NAME (build | -b | --build) \e[4mtarget\e[0m
+	    $PROGRAM_NAME (deploy | -d | --deploy) \e[4mtarget\e[0m
+	\n\e[1mSTATIC TARGETS\e[0m (build | deploy):
+	    root             Site root
+	    blog             Blog
+	    debate           Debate resources
+	    ta               Teaching assistant resources
+	    taiwan           Taiwan blog
+	\n\e[1mSERVICE TARGETS\e[0m (build | deploy):
+	    nginx            NGINX
+	    storage          File Storage
+	    ttrss            Tiny Tiny RSS
+	    books            Calibre Web
+	    music            MPD Server
+	\n\e[1mSEND TARGETS\e[0m:
+	    manager          Entire website-manager folder
+	    docker           Docker images
+	    secrets          Secrets file
+	\n\e[1mOPTIONS\e[0m:
+	    -q --quiet       Quiet ouput
+	    -v --verbose     Verbose output
+EOM
+
+#------------
 # Program
 #------------
 
@@ -22,6 +53,7 @@
 #         - TA
 #         - Taiwan blog
 #     - Dynamic
+#         - NGINX
 #         - Tiny Tiny RSS
 #         - Storage
 #         - Calibre Web
@@ -40,15 +72,11 @@
 #     - ashtonc.com         --> ashtonc.ca
 #     - *.ashtonc.com       --> *.ashtonc.ca
 #     - *.ashtonc.ca        --> ashtonc.ca
-#     - calendar.ashtonc.ca --> CNAME to google calendar
-#     - mail.ashtonc.ca     --> CNAME to google mail
+#     - calendar.ashtonc.ca --> calendar.google.com
+#     - mail.ashtonc.ca     --> mail.google.com
 #     - docs.ashtonc.ca     --> drive.google.com
 #     - repos.ashtonc.ca    --> source.cloud.google.com/repos
 #     - plex.ashtonc.ca     --> app.plex.tv
-
-#------------
-# Settings
-#------------
 
 #------------
 # Variables
@@ -60,14 +88,26 @@ VERSION="0.1.0-prerelease"
 GOOGLE_CLOUD_PROJECT="ashtonc-home"
 GOOGLE_CLOUD_BUCKET="ashtonc.ca"
 SERVER_NAME="ac-serf"
+
+USERNAME="ashton"
 SERVER_USERNAME="ashtonc"
 
 # Folders
-MANAGER_DIRECTORY="/home/ashton/website-manager"
+MANAGER_DIRECTORY="/home/$USERNAME/website-manager"
 SERVICES_DIRECTORY="$MANAGER_DIRECTORY/services"
 STATIC_DIRECTORY="$MANAGER_DIRECTORY/static"
 DOCKER_IMAGES_DIRECTORY="$MANAGER_DIRECTORY/docker-images"
 SECRETS_DIRECTORY="$MANAGER_DIRECTORY/secrets"
+
+SERVER_MANAGER_DIRECTORY="/home/$SERVER_USERNAME/website-manager"
+SERVER_SERVICES_DIRECTORY="$SERVER_MANAGER_DIRECTORY/services"
+SERVER_STATIC_DIRECTORY="$SERVER_MANAGER_DIRECTORY/static"
+SERVER_DOCKER_IMAGES_DIRECTORY="$SERVER_MANAGER_DIRECTORY/docker-images"
+SERVER_SECRETS_DIRECTORY="$SERVER_MANAGER_DIRECTORY/secrets"
+
+SERVER_BACKUP_DIRECTORY="/home/$SERVER_USERNAME/backups"
+SERVER_BACKUP_POSTGRES_DIRECTORY="$SERVER_BACKUP_DIRECTORY/postgres"
+SERVER_BACKUP_VOLUMES_DIRECTORY="$SERVER_BACKUP_DIRECTORY/volumes"
 
 # Static
 ROOT_DIRECTORY="$STATIC_DIRECTORY/home"
@@ -76,6 +116,12 @@ DEBATE_DIRECTORY="$STATIC_DIRECTORY/debate"
 TA_DIRECTORY="$STATIC_DIRECTORY/ta"
 TAIWAN_DIRECTORY="$STATIC_DIRECTORY/taiwan"
 
+SERVER_ROOT_DIRECTORY="$SERVER_STATIC_DIRECTORY/home"
+SERVER_BLOG_DIRECTORY="$SERVER_STATIC_DIRECTORY/blog"
+SERVER_EBATE_DIRECTORY="$SERVER_STATIC_DIRECTORY/debate"
+SERVER_TA_DIRECTORY="$SERVER_STATIC_DIRECTORY/ta"
+SERVER_TAIWAN_DIRECTORY="$SERVER_STATIC_DIRECTORY/taiwan"
+
 # Services
 NGINX_DIRECTORY="$SERVICES_DIRECTORY/nginx"
 STORAGE_DIRECTORY="$SERVICES_DIRECTORY/storage"
@@ -83,71 +129,32 @@ TTRSS_DIRECTORY="$SERVICES_DIRECTORY/ttrss"
 BOOKS_DIRECTORY="$SERVICES_DIRECTORY/books"
 MUSIC_DIRECTORY="$SERVICES_DIRECTORY/music"
 
-# Docker Images
+SERVER_NGINX_DIRECTORY="$SERVER_SERVICES_DIRECTORY/nginx"
+SERVER_STORAGE_DIRECTORY="$SERVER_SERVICES_DIRECTORY/storage"
+SERVER_TTRSS_DIRECTORY="$SERVER_SERVICES_DIRECTORY/ttrss"
+SERVER_BOOKS_DIRECTORY="$SERVER_SERVICES_DIRECTORY/books"
+SERVER_MUSIC_DIRECTORY="$SERVER_SERVICES_DIRECTORY/music"
+
+TTRSS_HOST_PORT=8777
+
+# Docker
+## Image Names
 NGINX_DOCKER_IMAGE_NAME="ashtonc-nginx"
 TTRSS_DOCKER_IMAGE_NAME="ashtonc-ttrss"
 BOOKS_DOCKER_IMAGE_NAME="ashtonc-calibre-web"
 MUSIC_DOCKER_IMAGE_NAME="ashtonc-mpd"
 POSTGRES_DOCKER_IMAGE_NAME="ashtonc-postgres"
 
+## Volume Names
+POSTGRES_DOCKER_VOLUME_NAME="postgres-volume"
+
 # Secrets
-SECRETS_FILE="$SECRETS_DIRECTORY/secrets-template.json"
+SECRETS_FILE="$SECRETS_DIRECTORY/secrets.json"
+SERVER_SECRETS_FILE="$SECRETS_DIRECTORY/secrets.json"
 
 #------------
 # Arguments
 #------------
-
-# Action flags
-action_help=false
-action_version=false
-
-## Verification steps
-action_verify_project=false
-
-## Targets
-action_build_target=""
-action_deploy_target=""
-action_send_target=""
-
-## Static
-action_build_root=false
-action_build_blog=false
-action_build_debate=false
-action_build_ta=false
-action_build_taiwan=false
-
-action_deploy_root=false
-action_deploy_blog=false
-action_deploy_debate=false
-action_deploy_ta=false
-action_deploy_taiwan=false
-
-## Services
-action_build_nginx=false
-action_build_storage=false
-action_build_ttrss=false
-action_build_books=false
-action_build_music=false
-
-action_deploy_nginx=false
-action_deploy_storage=false
-action_deploy_ttrss=false
-action_deploy_books=false
-action_deploy_music=false
-
-action_deploy_postgres=false
-action_backup_postgres=false
-action_restore_postgres=false
-
-action_test_nginx=false
-
-## Other
-action_send_images=false
-action_send_secrets=false
-
-# Options flags
-option_verbose=false
-option_quiet=false
 
 # Arguments collection loop
 positional_args=()
@@ -164,16 +171,19 @@ while [[ $# -gt 0 ]]; do
 			shift
 		;;
 		build|-b|--build)
+			action_build=true
 			action_build_target="$2"
 			shift
 			shift
 		;;
 		deploy|-d|--deploy)
+			action_deploy=true
 			action_deploy_target="$2"
 			shift
 			shift
 		;;
 		send|-s|--send)
+			action_send=true
 			action_send_target="$2"
 			shift
 			shift
@@ -209,9 +219,31 @@ fi
 # Targets
 #------------
 
-if [ "$action_build_target" != "" ]; then
+
+#         - Root (home)
+#         - Blog
+#         - Debate
+#         - TA
+#         - Taiwan blog
+
+if [ "$action_build" = true ]; then
 	case $action_build_target in
-		nginx) action_build_nginx=true;;
+		static)
+			action_build_root=true
+			action_build_blog=true
+			action_build_debate=true
+			action_build_ta=true
+			action_build_taiwan=true
+		;;
+		root) action_build_root=true;;
+		blog) action_build_blog=true;;
+		debate) action_build_debate=true;;
+		ta) action_build_ta=true;;
+		taiwan) action_build_taiwan=true;;
+		nginx)
+			action_verify_project=true
+			action_build_nginx=true
+		;;
 		storage) action_build_storage=true;;
 		rss|ttrss) action_build_ttrss=true;;
 		books|calibre) action_build_books=true;;
@@ -220,8 +252,20 @@ if [ "$action_build_target" != "" ]; then
 	esac
 fi
 
-if [ "$action_deploy_target" != "" ]; then
+if [ "$action_deploy" = true ]; then
 	case $action_deploy_target in
+		static)
+			action_deploy_root=true
+			action_deploy_blog=true
+			action_deploy_debate=true
+			action_deploy_ta=true
+			action_deploy_taiwan=true
+		;;
+		root) action_deploy_root=true;;
+		blog) action_deploy_blog=true;;
+		debate) action_deploy_debate=true;;
+		ta) action_deploy_ta=true;;
+		taiwan) action_deploy_taiwan=true;;
 		nginx) action_deploy_nginx=true;;
 		storage) action_deploy_storage=true;;
 		rss|ttrss) action_deploy_ttrss=true;;
@@ -231,11 +275,11 @@ if [ "$action_deploy_target" != "" ]; then
 	esac
 fi
 
-if [ "$action_send_target" != "" ]; then
+if [ "$action_send" = true ]; then
 	case $action_send_target in
+		manager) action_send_manager=true;;
 		docker|images) action_send_images=true;;
 		secrets|secret) action_send_secrets=true;;
-		manager) action_send_manager=true;;
 		*) echo -e "Invalid send target.";;
 	esac
 fi
@@ -264,26 +308,7 @@ echo_verbose()
 
 # Print usage/help information
 if [ "$action_help" = "true" ]; then
-	echo -e "\e[1mUSAGE\e[0m:"
-	echo -e "    $PROGRAM_NAME (help | -h | --help)"
-	echo -e "    $PROGRAM_NAME (version | --version)"
-	echo -e "    $PROGRAM_NAME (build | -b | --build) \e[4mtarget\e[0m"
-	echo -e "    $PROGRAM_NAME (deploy | -d | --deploy) \e[4mtarget\e[0m"
-	echo -e "\n\e[1mSTATIC TARGETS\e[0m:"
-	echo -e "    root             Site root"
-	echo -e "    blog             Blog"
-	echo -e "    debate           Debate resources"
-	echo -e "    ta               Teaching assistant resources"
-	echo -e "    taiwan           Taiwan blog"
-	echo -e "\n\e[1mSERVICE TARGETS\e[0m:"
-	echo -e "    nginx            NGINX"
-	echo -e "    storage          File Storage"
-	echo -e "    ttrss            Tiny Tiny RSS"
-	echo -e "    books            Calibre Web"
-	echo -e "    music            MPD Server"
-	echo -e "\n\e[1mOPTIONS\e[0m:"
-	echo -e "    -q --quiet       Quiet ouput"
-	echo -e "    -v --verbose     Verbose output"
+	echo -e "$HELP_TEXT"
 fi
 
 # Print version information
@@ -303,7 +328,7 @@ if [ "$action_verify_project" = "true" ]; then
 	fi
 fi
 
-# Setup
+# Setup (bad/unsafe version for now)
 if [ "$action_server_setup" = "true" ]; then
 	# Basic utilities
 	apt-get install sudo git tree
@@ -330,6 +355,22 @@ if [ "$action_server_setup" = "true" ]; then
 	sudo apt-get install docker-ce
 	#docker run hello-world
 	#docker ps
+fi
+
+# Send
+if [ "$action_send_manager" = "true" ]; then
+	echo_quiet "\e[1mSending manager to the server...\e[0m"
+	rsync -v -azP --delete --rsh=ssh --exclude ".git/" $MANAGER_DIRECTORY/ $SERVER_NAME:$SERVER_MANAGER_DIRECTORY
+fi
+
+if [ "$action_send_images" = "true" ]; then
+	echo_quiet "\e[1mSending Docker images to the server...\e[0m"
+	rsync -v -azP --delete --rsh=ssh $DOCKER_IMAGES_DIRECTORY/ $SERVER_NAME:$SERVER_DOCKER_IMAGES_DIRECTORY
+fi
+
+if [ "$action_send_secrets" = "true" ]; then
+	echo_quiet "\e[1mSending secrets to the server...\e[0m"
+	rsync -v -azP --delete --rsh=ssh $SECRETS_DIRECTORY/ $SERVER_NAME:$SERVER_SECRETS_DIRECTORY
 fi
 
 # Site Root
@@ -411,8 +452,8 @@ fi
 if [ "$action_build_nginx" = "true" ]; then
 	echo_quiet "\e[1mBuilding NGINX image...\e[0m"
 
-	echo_verbose "> Uploading configuration to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
-	gsutil -m rsync -r -x "Dockerfile|certificates/" "$NGINX_DIRECTORY" "gs://$GOOGLE_CLOUD_BUCKET/deploy/nginx"
+	#echo_verbose "> Uploading configuration to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
+	#gsutil -m rsync -r -x "Dockerfile|certificates/" "$NGINX_DIRECTORY" "gs://$GOOGLE_CLOUD_BUCKET/deploy/nginx"
 
 	echo_verbose "> Building NGINX image from Dockerfile..."
 	gcloud builds submit --tag "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME" "$NGINX_DIRECTORY"
@@ -433,35 +474,19 @@ if [ "$action_deploy_nginx" = "true" ]; then
 	echo_verbose "> Loading NGINX image from disk..."
 	docker load -i "/home/$SERVER_USERNAME/website-manager/docker-images/$NGINX_DOCKER_IMAGE_NAME.tar"
 
-	echo_verbose "> Stopping current NGINX image..."
-	docker stop $NGINX_DOCKER_IMAGE_NAME
-	docker rm $NGINX_DOCKER_IMAGE_NAME
+	echo_verbose "> Checking whether NGINX is running..."
+	if [ $(docker inspect -f '{{.State.Running}}' $NGINX_DOCKER_IMAGE_NAME) = true ]; then
+		echo_verbose "> Stopping NGINX..."
+		docker stop $NGINX_DOCKER_IMAGE_NAME
+		docker rm $NGINX_DOCKER_IMAGE_NAME
+	fi
 
 	echo_verbose "> Starting NGINX..."
-	docker run -d --name ashtonc-nginx -p 443:443 "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" nginx -g 'daemon off;'
-fi
-
-if [ "$action_test_nginx" = "true" ]; then
-	echo_quiet "\e[1mTesting NGINX image...\e[0m"
-
-	#nginx -c "$NGINX_DIRECTORY/conf.d/ashtonc.ca.conf" -t
-	#nginx -c "$NGINX_DIRECTORY/conf.d/redirects.conf" -t
-	#nginx -c "$NGINX_DIRECTORY/conf.d/books.ashtonc.ca.conf" -t
-	#nginx -c "$NGINX_DIRECTORY/conf.d/music.ashtonc.ca.conf" -t
-	#nginx -c "$NGINX_DIRECTORY/conf.d/rss.ashtonc.ca.conf" -t
-	#nginx -c "$NGINX_DIRECTORY/conf.d/storage.ashtonc.ca.conf" -t
-
-	#echo_verbose "> Uploading configuration to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
-	#gsutil -m rsync -r -x "Dockerfile|certificates/" "$NGINX_DIRECTORY" "gs://$GOOGLE_CLOUD_BUCKET/deploy/nginx"
-
-	echo_verbose "> Building NGINX image from Dockerfile..."
-	#gcloud builds submit --tag "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME" "$NGINX_DIRECTORY"
-
-	echo_verbose "> Pulling NGINX image from Google Container Registry..."
-	#docker pull "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest"
-
-	echo_verbose "> Running NGINX image..."
-	docker run ---name ashtonc-nginx -p 443:443 "gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" nginx -g 'daemon off;'
+	docker run -d \
+		--name $NGINX_DOCKER_IMAGE_NAME \
+		-p 443:443 \
+		"gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" \
+		nginx -g 'daemon off;'
 fi
 
 # PostgreSQL
@@ -472,46 +497,91 @@ if [ "$action_deploy_postgres" = "true" ]; then
 	docker pull postgres:latest
 
 	echo_verbose "> Reading secrets..."
-	POSTGRES_PASSWORD=$(jq -r '.postgres.password' $SECRETS_FILE)
+	POSTGRES_PASSWORD=$(jq -r '.postgres.password' $SERVER_SECRETS_FILE)
 
+	echo_verbose "> Checking whether postgres is running..."
+	if [ $(docker inspect -f '{{.State.Running}}' $POSTGRES_DOCKER_IMAGE_NAME) = true ]; then
+		echo_verbose "> Stopping postgres..."
+		docker stop $POSTGRES_DOCKER_IMAGE_NAME
+		docker rm $POSTGRES_DOCKER_IMAGE_NAME
+	fi
+	
 	echo_verbose "> Starting postgres..."
-	docker run --name $POSTGRES_DOCKER_IMAGE_NAME -e POSTGRES_PASSWORD=$POSTGRES_PASSWORD -d postgres
-
+	docker run -d \
+		--name $POSTGRES_DOCKER_IMAGE_NAME \
+		--volume $POSTGRES_DOCKER_VOLUME_NAME:/var/lib/postgresql/data \
+		-p 5432:5432 \
+		-e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+		postgres:latest
 fi
 
 if [ "$action_backup_postgres" = "true" ]; then
 	echo_quiet "\e[1mBacking up PostgreSQL database...\e[0m"
+	
+	CURRENT_TIME=$(date +%Y-%m-%d-%H-%M-%S)
+	POSTGRES_DUMP_FILE="${CURRENT_TIME}_pg-dump.sql.gz"
+	POSTGRES_VOLUME_FILE="${CURRENT_TIME}_pg-volume.tar.bz2"
 
-	echo_verbose "> Backing up PostgreSQL database..."
-	#docker exec -t $POSTGRES_DOCKER_IMAGE_NAME pg_dumpall -c -U postgres > dump_`date +%d-%m-%Y"_"%H_%M_%S`.sql
-	#docker exec -t $POSTGRES_DOCKER_IMAGE_NAME pg_dumpall -c -U postgres | gzip > dump_`date +%d-%m-%Y"_"%H_%M_%S`.sql.gz
+	echo_verbose "> Dumping PostgreSQL databases..."
+	docker exec -t $POSTGRES_DOCKER_IMAGE_NAME pg_dumpall -c -U postgres | gzip > $SERVER_BACKUP_POSTGRES_DIRECTORY/$POSTGRES_DUMP_FILE
+
+	echo_verbose "> Backing up Docker volume $POSTGRES_DOCKER_VOLUME_NAME..."
+	docker run --rm \
+		--volumes-from $POSTGRES_DOCKER_VOLUME_NAME \
+		-v $SERVER_BACKUP_POSTGRES_DIRECTORY:/backup \
+		ubuntu \
+		tar cjf /backup/$POSTGRES_VOLUME_FILE /$POSTGRES_DOCKER_VOLUME_NAME
 fi
 
 if [ "$action_restore_postgres" = "true" ]; then
 	echo_quiet "\e[1mRestoring PostgreSQL database...\e[0m"
+	exit 0
 
-	dump_file="dump.sql"
-	dump_file_compressed="dump.sql.gz"
+	echo_verbose "> Restoring PostgreSQL databases from $dump_file..."
+	#cat $dump_file | docker exec -i $POSTGRES_DOCKER_IMAGE_NAME psql -U postgres
+	#gunzip $dump_file | docker exec -i $POSTGRES_DOCKER_IMAGE_NAME psql -U postgres
 
-	echo_verbose "> Restoring PostgreSQL database from $dump_file..."
-	#cat $dump_file | docker exec -i your-db-container psql -U postgres
-	#gunzip $dump_file | docker exec -i your-db-container psql -U postgres
+	echo_verbose "> Restoring PostgreSQL volume from $dump_file..."
+	#docker run -v /dbdata --name dbstore2 ubuntu /bin/bash
+	#docker run --rm --volumes-from dbstore2 -v $(pwd):/backup ubuntu bash -c "cd /dbdata && tar xvf /backup/backup.tar --strip 1"
 fi
 
-# Send files
-if [ "$action_send_images" = "true" ]; then
-	echo_quiet "\e[1mSending Docker images to the server...\e[0m"
-	rsync -v -azP --delete --rsh=ssh $DOCKER_IMAGES_DIRECTORY/ $SERVER_NAME:/home/$SERVER_USERNAME/website-manager/docker-images
+# Tiny Tiny RSS
+if [ "$action_build_ttrss" = "true" ]; then
+	echo_quiet "\e[1mBuilding Tiny Tiny RSS image...\e[0m"
+
+	echo_verbose "> Building Tiny Tiny RSS image from Dockerfile..."
+	gcloud builds submit --tag "gcr.io/$GOOGLE_CLOUD_PROJECT/$TTRSS_DOCKER_IMAGE_NAME" "$TTRSS_DIRECTORY"
+
+	echo_verbose "> Pulling Tiny Tiny RSS image from Google Container Registry..."
+	docker pull "gcr.io/$GOOGLE_CLOUD_PROJECT/$TTRSS_DOCKER_IMAGE_NAME:latest"
+
+	echo_verbose "> Removing old Tiny Tiny RSS image..."
+	rm "$DOCKER_IMAGES_DIRECTORY/$TTRSS_DOCKER_IMAGE_NAME.tar"
+
+	echo_verbose "> Saving Tiny Tiny RSS image to disk..."
+	docker save "gcr.io/$GOOGLE_CLOUD_PROJECT/$TTRSS_DOCKER_IMAGE_NAME:latest" -o "$DOCKER_IMAGES_DIRECTORY/$TTRSS_DOCKER_IMAGE_NAME.tar"
 fi
 
-if [ "$action_send_secrets" = "true" ]; then
-	echo_quiet "\e[1mSending secrets to the server...\e[0m"
-	rsync -v -azP --delete --rsh=ssh $SECRETS_DIRECTORY/ $SERVER_NAME:/home/$SERVER_USERNAME/website-manager/secrets
-fi
+if [ "$action_deploy_ttrss" = "true" ]; then
+	echo_quiet "\e[1mDeploying Tiny Tiny RSS image...\e[0m"
 
-if [ "$action_send_manager" = "true" ]; then
-	echo_quiet "\e[1mSending manager to the server...\e[0m"
-	rsync -v -azP --delete --rsh=ssh --exclude ".git/" $MANAGER_DIRECTORY/ $SERVER_NAME:/home/$SERVER_USERNAME/website-manager
+	echo_verbose "> Loading Tiny Tiny RSS image from disk..."
+	docker load -i "/home/$SERVER_USERNAME/website-manager/docker-images/$TTRSS_DOCKER_IMAGE_NAME.tar"
+
+	echo_verbose "> Checking whether Tiny Tiny RSS is running..."
+	if [ $(docker inspect -f '{{.State.Running}}' $TTRSS_DOCKER_IMAGE_NAME) = true ]; then
+		echo_verbose "> Stopping Tiny Tiny RSS..."
+		docker stop $TTRSS_DOCKER_IMAGE_NAME
+		docker rm $TTRSS_DOCKER_IMAGE_NAME
+	fi
+
+	echo_verbose "> Starting Tiny Tiny RSS..."
+	docker run -d \
+		--name $TTRSS_DOCKER_IMAGE_NAME \
+		-p $TTRSS_HOST_PORT:80 \
+		"gcr.io/$GOOGLE_CLOUD_PROJECT/$TTRSS_DOCKER_IMAGE_NAME:latest" \
+		echo "started"
 fi
 
 # Exit with success
