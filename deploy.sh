@@ -18,6 +18,7 @@ read -r -d '' HELP_TEXT <<- EOM
 	    taiwan           Taiwan blog
 	\n\e[1mSERVICE TARGETS\e[0m (build | deploy):
 	    nginx            NGINX
+	    postgres         PostgreSQL
 	    storage          File Storage
 	    ttrss            Tiny Tiny RSS
 	    books            Calibre Web
@@ -118,7 +119,7 @@ TAIWAN_DIRECTORY="$STATIC_DIRECTORY/taiwan"
 
 SERVER_ROOT_DIRECTORY="$SERVER_STATIC_DIRECTORY/home"
 SERVER_BLOG_DIRECTORY="$SERVER_STATIC_DIRECTORY/blog"
-SERVER_EBATE_DIRECTORY="$SERVER_STATIC_DIRECTORY/debate"
+SERVER_DEBATE_DIRECTORY="$SERVER_STATIC_DIRECTORY/debate"
 SERVER_TA_DIRECTORY="$SERVER_STATIC_DIRECTORY/ta"
 SERVER_TAIWAN_DIRECTORY="$SERVER_STATIC_DIRECTORY/taiwan"
 
@@ -136,6 +137,7 @@ SERVER_BOOKS_DIRECTORY="$SERVER_SERVICES_DIRECTORY/books"
 SERVER_MUSIC_DIRECTORY="$SERVER_SERVICES_DIRECTORY/music"
 
 TTRSS_HOST_PORT=8777
+TTRSS_DOCKER_NETWORK=ttrss-network
 
 # Docker
 ## Image Names
@@ -150,7 +152,7 @@ POSTGRES_DOCKER_VOLUME_NAME="postgres-volume"
 
 # Secrets
 SECRETS_FILE="$SECRETS_DIRECTORY/secrets.json"
-SERVER_SECRETS_FILE="$SECRETS_DIRECTORY/secrets.json"
+SERVER_SECRETS_FILE="$SERVER_SECRETS_DIRECTORY/secrets.json"
 
 #------------
 # Arguments
@@ -267,6 +269,7 @@ if [ "$action_deploy" = true ]; then
 		ta) action_deploy_ta=true;;
 		taiwan) action_deploy_taiwan=true;;
 		nginx) action_deploy_nginx=true;;
+		postgres|postgresql) action_deploy_postgres=true;;
 		storage) action_deploy_storage=true;;
 		rss|ttrss) action_deploy_ttrss=true;;
 		books|calibre) action_deploy_books=true;;
@@ -331,7 +334,7 @@ fi
 # Setup (bad/unsafe version for now)
 if [ "$action_server_setup" = "true" ]; then
 	# Basic utilities
-	apt-get install sudo git tree
+	apt-get install sudo git tree jq
 
 	# Set to vim
 	update-alternatives --config editor
@@ -484,6 +487,7 @@ if [ "$action_deploy_nginx" = "true" ]; then
 	echo_verbose "> Starting NGINX..."
 	docker run -d \
 		--name $NGINX_DOCKER_IMAGE_NAME \
+		--restart unless-stopped \
 		-p 443:443 \
 		"gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" \
 		nginx -g 'daemon off;'
@@ -500,7 +504,7 @@ if [ "$action_deploy_postgres" = "true" ]; then
 	POSTGRES_PASSWORD=$(jq -r '.postgres.password' $SERVER_SECRETS_FILE)
 
 	echo_verbose "> Checking whether postgres is running..."
-	if [ $(docker inspect -f '{{.State.Running}}' $POSTGRES_DOCKER_IMAGE_NAME) = true ]; then
+	if [ $(docker inspect -f '{{.State.Running}}' ${POSTGRES_DOCKER_IMAGE_NAME}) = true ]; then
 		echo_verbose "> Stopping postgres..."
 		docker stop $POSTGRES_DOCKER_IMAGE_NAME
 		docker rm $POSTGRES_DOCKER_IMAGE_NAME
@@ -509,9 +513,10 @@ if [ "$action_deploy_postgres" = "true" ]; then
 	echo_verbose "> Starting postgres..."
 	docker run -d \
 		--name $POSTGRES_DOCKER_IMAGE_NAME \
+		--restart unless-stopped \
 		--volume $POSTGRES_DOCKER_VOLUME_NAME:/var/lib/postgresql/data \
-		-p 5432:5432 \
 		-e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
+		-e DB_EXTENSION=pg_trgm \
 		postgres:latest
 fi
 
@@ -564,24 +569,46 @@ if [ "$action_build_ttrss" = "true" ]; then
 fi
 
 if [ "$action_deploy_ttrss" = "true" ]; then
-	echo_quiet "\e[1mDeploying Tiny Tiny RSS image...\e[0m"
+	echo_quiet "\e[1mDeploying Tiny Tiny RSS...\e[0m"
+
+	echo_verbose "> Checking whether Tiny Tiny RSS network exists..."
+	if [ $(docker network ls --filter name=$TTRSS_DOCKER_NETWORK --format='{{.Name}}') = "" ]; then
+		echo_verbose "> Creating Tiny Tiny RSS network..."
+		docker network create $TTRSS_DOCKER_NETWORK
+	fi
+
+	echo_verbose "> Connecting postgres and nginx to Tiny Tiny RSS network..."
+	docker network connect $TTRSS_DOCKER_NETWORK $POSTGRES_DOCKER_IMAGE_NAME
+	docker network connect $TTRSS_DOCKER_NETWORK $NGINX_DOCKER_IMAGE_NAME
 
 	echo_verbose "> Loading Tiny Tiny RSS image from disk..."
 	docker load -i "/home/$SERVER_USERNAME/website-manager/docker-images/$TTRSS_DOCKER_IMAGE_NAME.tar"
 
-	echo_verbose "> Checking whether Tiny Tiny RSS is running..."
-	if [ $(docker inspect -f '{{.State.Running}}' $TTRSS_DOCKER_IMAGE_NAME) = true ]; then
+	echo_verbose "> Checking whether Tiny Tiny RSS image is running or exists..."
+	if [ $(docker inspect -f '{{.State.Running}}' ${TTRSS_DOCKER_IMAGE_NAME}) = true ]; then
 		echo_verbose "> Stopping Tiny Tiny RSS..."
 		docker stop $TTRSS_DOCKER_IMAGE_NAME
+	fi
+	if [ $(docker inspect -f '{{.State.Running}}' ${TTRSS_DOCKER_IMAGE_NAME}) = false ]; then
+		echo_verbose "> Removing Tiny Tiny RSS..."
 		docker rm $TTRSS_DOCKER_IMAGE_NAME
 	fi
 
+	echo_verbose "> Reading secrets..."
+	POSTGRES_PASSWORD=$(jq -r '.postgres.password' $SERVER_SECRETS_FILE)
+
 	echo_verbose "> Starting Tiny Tiny RSS..."
-	docker run -d \
+	docker run -dit \
 		--name $TTRSS_DOCKER_IMAGE_NAME \
-		-p $TTRSS_HOST_PORT:80 \
-		"gcr.io/$GOOGLE_CLOUD_PROJECT/$TTRSS_DOCKER_IMAGE_NAME:latest" \
-		echo "started"
+		--network $TTRSS_DOCKER_NETWORK \
+		-e DB_TYPE=pgsql \
+		-e DB_HOST=$POSTGRES_DOCKER_IMAGE_NAME \
+		-e DB_PORT=5432 \
+		-e DB_NAME=ttrss \
+		-e DB_USER=postgres \
+		-e DB_PASS=$POSTGRES_PASSWORD \
+		-e SELF_URL_PATH=https://ttrss.ashtonc.ca \
+		"gcr.io/$GOOGLE_CLOUD_PROJECT/$TTRSS_DOCKER_IMAGE_NAME:latest"
 fi
 
 # Exit with success
