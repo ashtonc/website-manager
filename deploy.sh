@@ -487,6 +487,8 @@ if [ "$action_deploy_nginx" = "true" ]; then
 	echo_verbose "> Starting NGINX..."
 	docker run -d \
 		--name $NGINX_DOCKER_IMAGE_NAME \
+		--network $TTRSS_DOCKER_NETWORK \
+		--volumes-from $TTRSS_DOCKER_IMAGE_NAME \
 		--restart unless-stopped \
 		-p 443:443 \
 		"gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" \
@@ -607,7 +609,7 @@ if [ "$action_deploy_ttrss" = "true" ]; then
 		-e DB_NAME=ttrss \
 		-e DB_USER=postgres \
 		-e DB_PASS=$POSTGRES_PASSWORD \
-		-e SELF_URL_PATH=https://ttrss.ashtonc.ca \
+		-e SELF_URL_PATH=https://rss.ashtonc.ca \
 		"gcr.io/$GOOGLE_CLOUD_PROJECT/$TTRSS_DOCKER_IMAGE_NAME:latest"
 fi
 
