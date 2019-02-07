@@ -40,6 +40,7 @@ RUN chown www-data:www-data -R /var/www
 RUN usermod --shell /bin/bash www-data
 
 RUN cp config.php-dist config.php
+RUN ln /usr/local/bin/php /usr/bin/php
 
 VOLUME /var/www
 
