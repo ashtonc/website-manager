@@ -1,0 +1,12 @@
+{
+  "smbc-comics.com": {
+    "type": "xpath",
+    "xpath": [
+      "title",
+      "img[@id='cc-comic']",
+      "img[@id='cc-comic']/@title",
+      "div[@id='aftercomic']"
+    ],
+    "join_element": "<br><br>"
+  }
+}

@@ -1,0 +1,24 @@
+{
+  "xkcd.com": {
+    "type": "xpath",
+    "xpath": [
+      "div[@id='ctitle']",
+      "div[contains(@id,'comic')]",
+      "div[contains(@id,'comic')]/img/@title|//article[@class='entry']"
+    ],
+    "join_element": "<br><br>",
+    "modify": [
+      {
+        "type": "replace",
+        "search": "src=\"/imgs",
+        "replace": "src=\"https://whatif.xkcd.com/imgs"
+      },
+      {
+        "type": "regex",
+        "pattern": "<img class=\"illustration\" title=\"([^\"]{0,})\" src=\"([^\"]{0,})\"/>",
+        "replace": "img class=\"illustration\" title=\"\\2\" src=\"\\2\"/><div class=\"illustration-text\">\\1</div"
+      }
+    ],
+    "start_element": "<style>.illustration-text{font-size: 0.8em;}.refnum::before{content: \" \"}.refbody{font-style: italic;}.refbody::before{font-style: normal;content: \"[\"}.refbody::after{font-style: normal;content: \"]\"}</style>"
+  }
+}

@@ -1,0 +1,6 @@
+{
+  "http://explosm.net": {
+    "type": "xpath",
+    "xpath": "div[@id='comic-wrap']"
+  }
+}

@@ -5,6 +5,7 @@ debate/
 home/
 ta/
 taiwan/
+logo/
 
 # Cert-manager key
 gce-service-account-key.json

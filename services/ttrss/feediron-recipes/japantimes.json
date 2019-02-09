@@ -1,0 +1,28 @@
+{
+  "japantimes.co.jp": {
+    "type": "xpath",
+    "xpath": [
+      "h1",
+      "h5[@class='writer']",
+      "p[@class='credit']",
+      "div[@id='article_history']/ul/li[1]",
+      "div[@id='article_history']/ul/li[2]",
+      "div[@class='entry']"
+    ],
+    "join_element": "<br><br>",
+    "cleanup": [
+      "script",
+      "div[@class='clearfix']",
+      "div[@class='OUTBRAIN']",
+      "ul[@id='content_footer_menu']",
+      "div[@class='article_footer_ad']",
+      "div[@id='disqus_thread']",
+      "div[@id='taboola-below-article-thumbnails']",
+      "div[@class='jtarticle_related']",
+      "span[@id='fa-spinner']",
+      "ul[@class='single-sns-area']",
+      "div[@class='jt_content_ad']",
+      "h3[@class='single-post-categories']"
+    ]
+  }
+}

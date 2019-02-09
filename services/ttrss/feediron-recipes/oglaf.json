@@ -1,0 +1,11 @@
+{
+  "oglaf.com": {
+    "type": "xpath",
+    "xpath": [
+      "title",
+      "img[@id='strip']",
+      "img[@id='strip']/@title"
+    ],
+    "join_element": "<br><br>"
+  }
+}

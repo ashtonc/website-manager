@@ -1,0 +1,16 @@
+{
+  "foreignpolicy.com": {
+    "type": "xpath",
+    "xpath": "article",
+    "cleanup": [
+      "h3[@class='department']",
+      "div[@class='internal-ad-single']",
+      "div[starts-with(@class, 'fp-related-wrapper')]",
+      "div[@class='related-articles']",
+      "div[starts-with(@class, 'taboola')]",
+      "div[@class='the-comments']",
+      "div[@class='the-tags']",
+      "div[@id='ds_cpp']"
+    ]
+  }
+}
