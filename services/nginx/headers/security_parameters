@@ -1,0 +1,9 @@
+add_header Strict-Transport-Security "max-age=31536000; includeSubdomains; preload";
+add_header Content-Security-Policy "default-src 'none'; script-src 'self' https://instant.page; style-src 'self' https://fonts.googleapis.com; font-src https://fonts.gstatic.com; img-src 'self'; manifest-src 'self'; prefetch-src 'self'"; 
+add_header Cache-Control "public";
+add_header X-Frame-Options "SAMEORIGIN";
+add_header X-XSS-Protection "1; mode=block";
+add_header X-Content-Type-Options "nosniff";
+add_header X-Permitted-Cross-Domain-Policies "master-only";
+add_header Referrer-Policy "strict-origin-when-cross-origin";
+

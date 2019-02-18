@@ -110,6 +110,8 @@ SERVER_BACKUP_DIRECTORY="/home/$SERVER_USERNAME/backups"
 SERVER_BACKUP_POSTGRES_DIRECTORY="$SERVER_BACKUP_DIRECTORY/postgres"
 SERVER_BACKUP_VOLUMES_DIRECTORY="$SERVER_BACKUP_DIRECTORY/volumes"
 
+SERVER_STATIC_SERVE_DIRECTORY="/home/$SERVER_USERNAME/static"
+
 # Static
 ROOT_DIRECTORY="$STATIC_DIRECTORY/home"
 BLOG_DIRECTORY="$STATIC_DIRECTORY/blog"
@@ -380,6 +382,12 @@ fi
 if [ "$action_build_root" = "true" ]; then
 	echo_quiet "\e[1mBuilding root...\e[0m"
 
+	echo_verbose "> Updating date in humans.txt..."
+
+
+	echo_verbose "> Copying favicon from logo project..."
+	
+
 	echo_verbose "> Minifying assets..."
 	minify $ROOT_DIRECTORY/assets/css/default.css -o $ROOT_DIRECTORY/assets/css/default.min.css
 fi
@@ -389,6 +397,9 @@ if [ "$action_deploy_root" = "true" ]; then
 
 	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
 	gsutil -m rsync -r -x ".git/" "$ROOT_DIRECTORY" "gs://$GOOGLE_CLOUD_BUCKET/static"
+
+	echo_verbose "> Uploading content to the static serve directory on the server..."
+	rsync -v -azP --rsh=ssh --exclude ".git" "$ROOT_DIRECTORY/" $SERVER_NAME:$SERVER_STATIC_SERVE_DIRECTORY
 fi
 
 # Blog
@@ -404,6 +415,9 @@ if [ "$action_deploy_blog" = "true" ]; then
 
 	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
 	gsutil -m rsync -r -x ".git/" "$BLOG_DIRECTORY/public" "gs://$GOOGLE_CLOUD_BUCKET/static/blog"
+
+	echo_verbose "> Uploading content to the static serve directory on the server..."
+	rsync --dry-run -v -azP --rsh=ssh --exclude ".git" "$BLOG_DIRECTORY/public/" $SERVER_NAME:$SERVER_STATIC_SERVE_DIRECTORY/blog
 fi
 
 # Debate Resources
@@ -419,6 +433,9 @@ if [ "$action_deploy_debate" = "true" ]; then
 
 	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
 	gsutil -m rsync -r -x ".git/" "$DEBATE_DIRECTORY/public" "gs://$GOOGLE_CLOUD_BUCKET/static/debate"
+
+	echo_verbose "> Uploading content to the static serve directory on the server..."
+	rsync -v -azP --delete --rsh=ssh --exclude ".git" "$DEBATE_DIRECTORY/public/" $SERVER_NAME:$SERVER_STATIC_SERVE_DIRECTORY/debate
 fi
 
 # Teaching Assistant Resources
@@ -434,6 +451,9 @@ if [ "$action_deploy_ta" = "true" ]; then
 
 	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
 	gsutil -m rsync -r -x ".git/" "$TA_DIRECTORY/public" "gs://$GOOGLE_CLOUD_BUCKET/static/ta"
+
+	echo_verbose "> Uploading content to the static serve directory on the server..."
+	rsync -v -azP --delete --rsh=ssh --exclude ".git" "$TA_DIRECTORY/public/" $SERVER_NAME:$SERVER_STATIC_SERVE_DIRECTORY/ta
 fi
 
 # Taiwan Blog
@@ -449,6 +469,9 @@ if [ "$action_deploy_taiwan" = "true" ]; then
 
 	echo_verbose "> Uploading to Google Cloud Storage bucket $GOOGLE_CLOUD_BUCKET..."
 	gsutil -m rsync -r -x ".git/" "$TAIWAN_DIRECTORY/_site" "gs://$GOOGLE_CLOUD_BUCKET/static/taiwan"
+
+	echo_verbose "> Uploading content to the static serve directory on the server..."
+	rsync -v -azP --delete --rsh=ssh --exclude ".git" "$TAIWAN_DIRECTORY/public/" $SERVER_NAME:$SERVER_STATIC_SERVE_DIRECTORY/taiwan
 fi
 
 # NGINX
@@ -488,6 +511,7 @@ if [ "$action_deploy_nginx" = "true" ]; then
 	docker run -d \
 		--name $NGINX_DOCKER_IMAGE_NAME \
 		--network $TTRSS_DOCKER_NETWORK \
+		--volume $SERVER_STATIC_SERVE_DIRECTORY:/var/static \
 		--volumes-from $TTRSS_DOCKER_IMAGE_NAME \
 		--restart unless-stopped \
 		-p 443:443 \
