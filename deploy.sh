@@ -112,6 +112,10 @@ SERVER_BACKUP_VOLUMES_DIRECTORY="$SERVER_BACKUP_DIRECTORY/volumes"
 
 SERVER_STATIC_SERVE_DIRECTORY="/home/$SERVER_USERNAME/static"
 
+LOGO_DIRECTORY="$MANAGER_DIRECTORY/logo"
+FAVICON_DIRECTORY="$LOGO_DIRECTORY/favicon"
+FAVICON_SITEROOT_DIRECTORY="$FAVICON_DIRECTORY/siteroot"
+
 # Static
 ROOT_DIRECTORY="$STATIC_DIRECTORY/home"
 BLOG_DIRECTORY="$STATIC_DIRECTORY/blog"
@@ -383,13 +387,26 @@ if [ "$action_build_root" = "true" ]; then
 	echo_quiet "\e[1mBuilding root...\e[0m"
 
 	echo_verbose "> Updating date in humans.txt..."
+	cat $ROOT_DIRECTORY/humans.txt | sed -r "s/[0-9]{4}-[0-9]{2}-[0-9]{2}/$(date '+%F')/g" > $ROOT_DIRECTORY/humans.txt
 
+	echo_verbose "> Copying favicons from logo project..."
+	cp $FAVICON_SITEROOT_DIRECTORY/* $ROOT_DIRECTORY/
 
-	echo_verbose "> Copying favicon from logo project..."
-	
+	echo_verbose "> Linting CSS..."
+	for file in $ROOT_DIRECTORY/assets/css/*.css; do
+		if [ $(basename "$file" | cut -d. -f2) != "min" ]; then
+			echo_verbose ">   $(basename $file)..."
+			stylelint "$file" --fix
+		fi
+	done
 
 	echo_verbose "> Minifying assets..."
-	minify $ROOT_DIRECTORY/assets/css/default.css -o $ROOT_DIRECTORY/assets/css/default.min.css
+	for file in $ROOT_DIRECTORY/assets/css/*.css; do
+		if [ $(basename $file | cut -d. -f2) != "min" ]; then
+			echo_verbose ">   $(basename $file)..."
+			cssnano "$file" "$(echo "$file" | head --bytes -5).min.css"
+		fi
+	done
 fi
 
 if [ "$action_deploy_root" = "true" ]; then
