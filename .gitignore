@@ -6,6 +6,7 @@ home/
 ta/
 taiwan/
 logo/
+origin/
 
 # Cert-manager key
 gce-service-account-key.json
