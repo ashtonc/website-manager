@@ -10,6 +10,7 @@ ADD conf.d/rss.ashtonc.ca.conf /etc/nginx/conf.d/rss.ashtonc.ca.conf
 ADD conf.d/storage.ashtonc.ca.conf /etc/nginx/conf.d/storage.ashtonc.ca.conf
 ADD conf.d/books.ashtonc.ca.conf /etc/nginx/conf.d/books.ashtonc.ca.conf
 ADD conf.d/music.ashtonc.ca.conf /etc/nginx/conf.d/music.ashtonc.ca.conf
+ADD conf.d/git.ashtonc.ca.conf /etc/nginx/conf.d/git.ashtonc.ca.conf
 
 # Additional parameters
 ADD headers/gcs_proxy_parameters /etc/nginx/gcs_proxy_params

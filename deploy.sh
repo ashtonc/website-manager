@@ -41,6 +41,9 @@ EOM
 # - Make it easy to redeploy any of my web services in case of failure
 
 # Todo
+# - Disable gravatar on Gitea
+# - Customize the Gitea home page/favicon
+# - New database users for TTRSS and Gitea
 # - Silence shell commands with -q flag
 # - Proper WAL backups of postgres db with barman or wal-e or something
 # - Graceful handling of unexpected build/deploy targets
@@ -145,6 +148,9 @@ SERVER_MUSIC_DIRECTORY="$SERVER_SERVICES_DIRECTORY/music"
 TTRSS_HOST_PORT=8777
 TTRSS_DOCKER_NETWORK=ttrss-network
 
+GITEA_HOST_PORT=3000
+GITEA_DOCKER_NETWORK=gitea-network
+
 # Docker
 ## Image Names
 NGINX_DOCKER_IMAGE_NAME="ashtonc-nginx"
@@ -152,9 +158,12 @@ TTRSS_DOCKER_IMAGE_NAME="ashtonc-ttrss"
 BOOKS_DOCKER_IMAGE_NAME="ashtonc-calibre-web"
 MUSIC_DOCKER_IMAGE_NAME="ashtonc-mpd"
 POSTGRES_DOCKER_IMAGE_NAME="ashtonc-postgres"
+GITEA_DOCKER_IMAGE_NAME="ashtonc-gitea"
 
 ## Volume Names
 POSTGRES_DOCKER_VOLUME_NAME="postgres-volume"
+TTRSS_DOCKER_VOLUME_NAME="ttrss-volume"
+GITEA_DOCKER_VOLUME_NAME="gitea-volume"
 
 # Secrets
 SECRETS_FILE="$SECRETS_DIRECTORY/secrets.json"
@@ -280,6 +289,7 @@ if [ "$action_deploy" = true ]; then
 		rss|ttrss) action_deploy_ttrss=true;;
 		books|calibre) action_deploy_books=true;;
 		music|mpd) action_deploy_music=true;;
+		git|gitea) action_deploy_gitea=true;;
 		*) echo -e "Invalid deploy target.";;
 	esac
 fi
@@ -527,13 +537,18 @@ if [ "$action_deploy_nginx" = "true" ]; then
 	echo_verbose "> Starting NGINX..."
 	docker run -d \
 		--name $NGINX_DOCKER_IMAGE_NAME \
-		--network $TTRSS_DOCKER_NETWORK \
 		--volume $SERVER_STATIC_SERVE_DIRECTORY:/var/static \
 		--volumes-from $TTRSS_DOCKER_IMAGE_NAME \
 		--restart unless-stopped \
 		-p 443:443 \
 		"gcr.io/$GOOGLE_CLOUD_PROJECT/$NGINX_DOCKER_IMAGE_NAME:latest" \
 		nginx -g 'daemon off;'
+
+	echo_verbose "> Connecting NGINX to TTRSS..."
+	docker network connect $TTRSS_DOCKER_NETWORK $NGINX_DOCKER_IMAGE_NAME
+
+	echo_verbose "> Connecting NGINX to Gitea..."
+	docker network connect $GITEA_DOCKER_NETWORK $NGINX_DOCKER_IMAGE_NAME
 fi
 
 # PostgreSQL
@@ -561,6 +576,12 @@ if [ "$action_deploy_postgres" = "true" ]; then
 		-e POSTGRES_PASSWORD=$POSTGRES_PASSWORD \
 		-e DB_EXTENSION=pg_trgm \
 		postgres:latest
+
+	echo_verbose "> Connecting Postgres to TTRSS..."
+	docker network connect $TTRSS_DOCKER_NETWORK $POSTGRES_DOCKER_IMAGE_NAME
+
+	echo_verbose "> Connecting Postgres to Gitea..."
+	docker network connect $GITEA_DOCKER_NETWORK $POSTGRES_DOCKER_IMAGE_NAME
 fi
 
 if [ "$action_backup_postgres" = "true" ]; then
@@ -652,6 +673,57 @@ if [ "$action_deploy_ttrss" = "true" ]; then
 		-e DB_PASS=$POSTGRES_PASSWORD \
 		-e SELF_URL_PATH=https://rss.ashtonc.ca \
 		"gcr.io/$GOOGLE_CLOUD_PROJECT/$TTRSS_DOCKER_IMAGE_NAME:latest"
+fi
+
+# Gitea
+if [ "$action_deploy_gitea" = "true" ]; then
+	echo_quiet "\e[1mDeploying Gitea image...\e[0m"
+
+	echo_verbose "> Pulling Gitea image..."
+	docker pull gitea/gitea:latest
+
+	echo_verbose "> Checking whether Gitea network exists..."
+	if [ $(docker network ls --filter name=$GITEA_DOCKER_NETWORK --format='{{.Name}}') = "" ]; then
+		echo_verbose "> Creating Gitea network..."
+		docker network create $GITEA_DOCKER_NETWORK
+	fi
+
+	echo_verbose "> Connecting Postgres and NGINX to Gitea network..."
+	docker network connect $GITEA_DOCKER_NETWORK $POSTGRES_DOCKER_IMAGE_NAME
+	docker network connect $GITEA_DOCKER_NETWORK $NGINX_DOCKER_IMAGE_NAME
+
+	echo_verbose "> Checking whether Gitea image is running or exists..."
+	if [ $(docker inspect -f '{{.State.Running}}' ${GITEA_DOCKER_IMAGE_NAME}) = true ]; then
+		echo_verbose "> Stopping Gitea..."
+		docker stop $GITEA_DOCKER_IMAGE_NAME
+	fi
+	if [ $(docker inspect -f '{{.State.Running}}' ${GITEA_DOCKER_IMAGE_NAME}) = false ]; then
+		echo_verbose "> Removing Gitea..."
+		docker rm $GITEA_DOCKER_IMAGE_NAME
+	fi
+
+	echo_verbose "> Reading secrets..."
+	POSTGRES_PASSWORD=$(jq -r '.postgres.password' $SERVER_SECRETS_FILE)
+	INSTALL_LOCK=$(jq -r '.gitea.installlock' $SERVER_SECRETS_FILE)
+
+	echo_verbose "> Starting Gitea..."
+	docker run -dit \
+		--name $GITEA_DOCKER_IMAGE_NAME \
+		--network $GITEA_DOCKER_NETWORK \
+		--volume $GITEA_DOCKER_VOLUME_NAME:/data \
+		--restart unless-stopped \
+		-e APP_NAME="Gitea" \
+		-e RUN_MODE=prod \
+		-e DISABLE_SSH=true \
+		-e ROOT_URL="https://git.ashtonc.ca" \
+		-e DB_TYPE=postgres \
+		-e DB_HOST=$POSTGRES_DOCKER_IMAGE_NAME:5432 \
+		-e DB_NAME=gitea \
+		-e DB_USER=postgres \
+		-e DB_PASSWD=$POSTGRES_PASSWORD \
+		-e SECRET_KEY=$INSTALL_LOCK \
+		-e DISABLE_REGISTRATION=true \
+		"gitea/gitea:latest"
 fi
 
 # Exit with success
