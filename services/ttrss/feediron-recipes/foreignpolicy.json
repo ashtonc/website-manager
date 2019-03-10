@@ -11,6 +11,20 @@
       "div[@class='the-comments']",
       "div[@class='the-tags']",
       "div[@id='ds_cpp']"
+    ],
+    "force_charset": "utf-8",
+    "modify": [
+      {
+        "type": "replace",
+        "search": [
+          "srcset",
+          "data-src="
+        ],
+        "replace": [
+          "null",
+          "src="
+        ]
+      }
     ]
   }
 }

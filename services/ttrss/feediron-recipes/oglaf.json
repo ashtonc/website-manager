@@ -6,6 +6,18 @@
       "img[@id='strip']",
       "img[@id='strip']/@title"
     ],
-    "join_element": "<br><br>"
+    "start_element": "<h1>",
+    "modify": [
+      {
+        "type": "replace",
+        "search": "<img",
+        "replace": "</h1><img"
+      },
+      {
+        "type": "regex",
+        "pattern": "/\"\\/>(.*)/",
+        "replace": "\"\\/><p>\\1</p>"
+      }
+    ]
   }
 }

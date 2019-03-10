@@ -6,7 +6,6 @@
       "div[contains(@id,'comic')]",
       "div[contains(@id,'comic')]/img/@title|//article[@class='entry']"
     ],
-    "join_element": "<br><br>",
     "modify": [
       {
         "type": "replace",
@@ -17,8 +16,18 @@
         "type": "regex",
         "pattern": "<img class=\"illustration\" title=\"([^\"]{0,})\" src=\"([^\"]{0,})\"/>",
         "replace": "img class=\"illustration\" title=\"\\2\" src=\"\\2\"/><div class=\"illustration-text\">\\1</div"
+      },
+      {
+        "type": "regex",
+        "pattern": "/^((.(?!<a href))*.)/",
+        "replace": "<h1>\\1</h1>"
+      },
+      {
+        "type": "regex",
+        "pattern": "/(<img src=\"\\/\\/imgs.xkcd.com[^\"]*\"[^>]*>)(.*)/",
+        "replace": "\\1<p>\\2</p>"
       }
     ],
-    "start_element": "<style>.illustration-text{font-size: 0.8em;}.refnum::before{content: \" \"}.refbody{font-style: italic;}.refbody::before{font-style: normal;content: \"[\"}.refbody::after{font-style: normal;content: \"]\"}</style>"
+    "force_charset": "utf-8"
   }
 }

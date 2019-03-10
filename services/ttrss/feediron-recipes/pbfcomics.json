@@ -6,6 +6,6 @@
       "div[@id='comic']/img"
     ],
     "start_element": "<h1>",
-    "join_element": "</h1><br><br>"
+    "join_element": "</h1>"
   }
 }

@@ -36,8 +36,11 @@ WORKDIR /var/www
 RUN curl -SL https://git.tt-rss.org/fox/tt-rss/archive/master.tar.gz | tar xzC /var/www --strip-components 1 \
     && rm -rf */.empty */*/.empty *.md *.pot .gitignore utils
 
-RUN mkdir -p /var/www/plugins.local/feediron
+RUN mkdir -p /var/www/plugins.local/feediron \
     && curl -SL https://github.com/feediron/ttrss_plugin-feediron/archive/master.tar.gz | tar xzC /var/www/plugins.local/feediron --strip-components 1
+
+RUN mkdir -p /var/www/plugins.local/tumblr_gdpr \
+    && curl -SL https://github.com/GregThib/ttrss-tumblr-gdpr/archive/master.tar.gz | tar xzC /var/www/plugins.local/tumblr_gdpr --strip-components 1
 
 COPY overwrites/images/favicon.png images/
 COPY overwrites/images/favicon-72px.png images/
