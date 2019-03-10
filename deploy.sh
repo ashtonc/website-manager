@@ -136,12 +136,14 @@ SERVER_TAIWAN_DIRECTORY="$SERVER_STATIC_DIRECTORY/taiwan"
 NGINX_DIRECTORY="$SERVICES_DIRECTORY/nginx"
 STORAGE_DIRECTORY="$SERVICES_DIRECTORY/storage"
 TTRSS_DIRECTORY="$SERVICES_DIRECTORY/ttrss"
+GITEA_DIRECTORY="$SERVICES_DIRECTORY/gitea"
 BOOKS_DIRECTORY="$SERVICES_DIRECTORY/books"
 MUSIC_DIRECTORY="$SERVICES_DIRECTORY/music"
 
 SERVER_NGINX_DIRECTORY="$SERVER_SERVICES_DIRECTORY/nginx"
 SERVER_STORAGE_DIRECTORY="$SERVER_SERVICES_DIRECTORY/storage"
 SERVER_TTRSS_DIRECTORY="$SERVER_SERVICES_DIRECTORY/ttrss"
+SERVER_GITEA_DIRECTORY="$SERVER_SERVICES_DIRECTORY/gitea"
 SERVER_BOOKS_DIRECTORY="$SERVER_SERVICES_DIRECTORY/books"
 SERVER_MUSIC_DIRECTORY="$SERVER_SERVICES_DIRECTORY/music"
 
@@ -236,13 +238,6 @@ fi
 # Targets
 #------------
 
-
-#         - Root (home)
-#         - Blog
-#         - Debate
-#         - TA
-#         - Taiwan blog
-
 if [ "$action_build" = true ]; then
 	case $action_build_target in
 		static)
@@ -265,6 +260,7 @@ if [ "$action_build" = true ]; then
 		rss|ttrss) action_build_ttrss=true;;
 		books|calibre) action_build_books=true;;
 		music|mpd) action_build_music=true;;
+		git|gitea) action_build_gitea=true;;
 		*) echo -e "Invalid build target.";;
 	esac
 fi
@@ -676,11 +672,27 @@ if [ "$action_deploy_ttrss" = "true" ]; then
 fi
 
 # Gitea
+if [ "$action_build_gitea" = "true" ]; then
+	echo_quiet "\e[1mBuilding Gitea image...\e[0m"
+
+	echo_verbose "> Building Gitea image from Dockerfile..."
+	gcloud builds submit --tag "gcr.io/$GOOGLE_CLOUD_PROJECT/$GITEA_DOCKER_IMAGE_NAME" "$GITEA_DIRECTORY"
+
+	echo_verbose "> Pulling Gitea image from Google Container Registry..."
+	docker pull "gcr.io/$GOOGLE_CLOUD_PROJECT/$GITEA_DOCKER_IMAGE_NAME:latest"
+	
+	echo_verbose "> Removing old Gitea image..."
+	rm "$DOCKER_IMAGES_DIRECTORY/$GITEA_DOCKER_IMAGE_NAME.tar"
+
+	echo_verbose "> Saving Gitea image to disk..."
+	docker save "gcr.io/$GOOGLE_CLOUD_PROJECT/$GITEA_DOCKER_IMAGE_NAME:latest" -o "$DOCKER_IMAGES_DIRECTORY/$GITEA_DOCKER_IMAGE_NAME.tar"
+fi
+
 if [ "$action_deploy_gitea" = "true" ]; then
 	echo_quiet "\e[1mDeploying Gitea image...\e[0m"
 
-	echo_verbose "> Pulling Gitea image..."
-	docker pull gitea/gitea:latest
+	echo_verbose "> Loading Gitea image from disk..."
+	docker load -i "/home/$SERVER_USERNAME/website-manager/docker-images/$GITEA_DOCKER_IMAGE_NAME.tar"
 
 	echo_verbose "> Checking whether Gitea network exists..."
 	if [ $(docker network ls --filter name=$GITEA_DOCKER_NETWORK --format='{{.Name}}') = "" ]; then
@@ -723,7 +735,7 @@ if [ "$action_deploy_gitea" = "true" ]; then
 		-e DB_PASSWD=$POSTGRES_PASSWORD \
 		-e SECRET_KEY=$INSTALL_LOCK \
 		-e DISABLE_REGISTRATION=true \
-		"gitea/gitea:latest"
+		"gcr.io/$GOOGLE_CLOUD_PROJECT/$GITEA_DOCKER_IMAGE_NAME:latest"
 fi
 
 # Exit with success
