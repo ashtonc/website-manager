@@ -1,19 +1,19 @@
 {
-  "canadiancouchpotato.com": {
-    "type": "xpath",
-    "xpath": [
-      "h1",
-      "span[starts-with(@class, 'updated')]",
-      "div[contains(@class, 'post-content')]"
-    ],
-    "join_element": "<br><br>",
-    "cleanup": [
-      "script",
-      "span[@class='fusion-comments']",
-      "div[starts-with(@class, 'essb_links')]",
-      "div[@id='comments']",
-      "div[@id='respond']",
-      "ins"
-    ]
-  }
+	"canadiancouchpotato.com": {
+		"type": "xpath",
+		"xpath": [
+			"h1",
+			"span[starts-with(@class, 'updated')]",
+			"div[contains(@class, 'post-content')]"
+		],
+		"join_element": "<br><br>",
+		"cleanup": [
+			"script",
+			"span[@class='fusion-comments']",
+			"div[starts-with(@class, 'essb_links')]",
+			"div[@id='comments']",
+			"div[@id='respond']",
+			"ins"
+		]
+	}
 }

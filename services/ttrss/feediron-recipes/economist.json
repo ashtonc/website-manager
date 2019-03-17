@@ -1,28 +1,28 @@
 {
-  "economist.com": {
-    "type": "xpath",
-    "xpath": [
-      "h1",
-      "div[@class='blog-post__inner']"
-    ],
-    "join_element": "<br><br>",
-    "cleanup": [
-      "div[starts-with(@class, 'newsletter-form')]",
-      "div[starts-with(@class, 'blog-post__asideable-content')]",
-      "div[@class='ad-panel__googlead']",
-      "div[@aria-label='Advertisement']"
-    ],
-    "force_charset": "utf-8",
-    "modify": [
-      {
-        "type": "replace",
-        "search": [
-          "srcset"
-        ],
-        "replace": [
-          "null"
-        ]
-      }
-    ]
-  }
+	"economist.com": {
+		"type": "xpath",
+		"xpath": [
+			"h1",
+			"div[@class='blog-post__inner']"
+		],
+		"join_element": "<br><br>",
+		"cleanup": [
+			"div[starts-with(@class, 'newsletter-form')]",
+			"div[starts-with(@class, 'blog-post__asideable-content')]",
+			"div[@class='ad-panel__googlead']",
+			"div[@aria-label='Advertisement']"
+		],
+		"force_charset": "utf-8",
+		"modify": [
+			{
+				"type": "replace",
+				"search": [
+					"srcset"
+				],
+				"replace": [
+					"null"
+				]
+			}
+		]
+	}
 }

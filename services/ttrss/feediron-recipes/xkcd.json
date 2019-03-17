@@ -1,33 +1,33 @@
 {
-  "xkcd.com": {
-    "type": "xpath",
-    "xpath": [
-      "div[@id='ctitle']",
-      "div[contains(@id,'comic')]",
-      "div[contains(@id,'comic')]/img/@title|//article[@class='entry']"
-    ],
-    "modify": [
-      {
-        "type": "replace",
-        "search": "src=\"/imgs",
-        "replace": "src=\"https://whatif.xkcd.com/imgs"
-      },
-      {
-        "type": "regex",
-        "pattern": "<img class=\"illustration\" title=\"([^\"]{0,})\" src=\"([^\"]{0,})\"/>",
-        "replace": "img class=\"illustration\" title=\"\\2\" src=\"\\2\"/><div class=\"illustration-text\">\\1</div"
-      },
-      {
-        "type": "regex",
-        "pattern": "/^((.(?!<a href))*.)/",
-        "replace": "<h1>\\1</h1>"
-      },
-      {
-        "type": "regex",
-        "pattern": "/(<img src=\"\\/\\/imgs.xkcd.com[^\"]*\"[^>]*>)(.*)/",
-        "replace": "\\1<p>\\2</p>"
-      }
-    ],
-    "force_charset": "utf-8"
-  }
+	"xkcd.com": {
+		"type": "xpath",
+		"xpath": [
+			"div[@id='ctitle']",
+			"div[contains(@id,'comic')]",
+			"div[contains(@id,'comic')]/img/@title|//article[@class='entry']"
+		],
+		"modify": [
+			{
+				"type": "replace",
+				"search": "src=\"/imgs",
+				"replace": "src=\"https://whatif.xkcd.com/imgs"
+			},
+			{
+				"type": "regex",
+				"pattern": "<img class=\"illustration\" title=\"([^\"]{0,})\" src=\"([^\"]{0,})\"/>",
+				"replace": "img class=\"illustration\" title=\"\\2\" src=\"\\2\"/><div class=\"illustration-text\">\\1</div"
+			},
+			{
+				"type": "regex",
+				"pattern": "/^((.(?!<a href))*.)/",
+				"replace": "<h1>\\1</h1>"
+			},
+			{
+				"type": "regex",
+				"pattern": "/(<img src=\"\\/\\/imgs.xkcd.com[^\"]*\"[^>]*>)(.*)/",
+				"replace": "\\1<p>\\2</p>"
+			}
+		],
+		"force_charset": "utf-8"
+	}
 }

@@ -1,24 +1,24 @@
 {
-  "smbc-comics.com": {
-    "type": "xpath",
-    "xpath": [
-      "title",
-      "img[@id='cc-comic']",
-      "img[@id='cc-comic']/@title",
-      "div[@id='aftercomic']"
-    ],
-    "start_element": "<h1>",
-    "modify": [
-      {
-        "type": "regex",
-        "pattern": "/<h1>Saturday Morning Breakfast Cereal - ((.(?!<img))*.)/",
-        "replace": "<h1>\\1</h1>"
-      },
-      {
-        "type": "regex",
-        "pattern": "/\"cc-comic\"\\/>((.(?!<img))*.)/",
-        "replace": "\"cc-comic\"\\/><p>\\1</p>"
-      }
-    ]
-  }
+	"smbc-comics.com": {
+		"type": "xpath",
+		"xpath": [
+			"title",
+			"img[@id='cc-comic']",
+			"img[@id='cc-comic']/@title",
+			"div[@id='aftercomic']"
+		],
+		"start_element": "<h1>",
+		"modify": [
+			{
+				"type": "regex",
+				"pattern": "/<h1>Saturday Morning Breakfast Cereal - ((.(?!<img))*.)/",
+				"replace": "<h1>\\1</h1>"
+			},
+			{
+				"type": "regex",
+				"pattern": "/\"cc-comic\"\\/>((.(?!<img))*.)/",
+				"replace": "\"cc-comic\"\\/><p>\\1</p>"
+			}
+		]
+	}
 }

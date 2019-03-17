@@ -1,13 +1,13 @@
 {
-  "moneysense.ca": {
-    "type": "xpath",
-    "xpath": [
-      "h1[@class='postTitle']",
-      "h2[@class='post-excerpt']",
-      "span[@itemprop='author']",
-      "time[@itemprop='datePublished']",
-      "div[contains(@class, 'content-container')]"
-    ],
-    "join_element": "<br><br>"
-  }
+	"moneysense.ca": {
+		"type": "xpath",
+		"xpath": [
+			"h1[@class='postTitle']",
+			"h2[@class='post-excerpt']",
+			"span[@itemprop='author']",
+			"time[@itemprop='datePublished']",
+			"div[contains(@class, 'content-container')]"
+		],
+		"join_element": "<br><br>"
+	}
 }

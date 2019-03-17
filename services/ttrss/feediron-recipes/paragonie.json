@@ -1,0 +1,17 @@
+{
+	"paragonie.com": {
+		"type": "xpath",
+		"xpath": "div[@class='blog-post']",
+		"force_charset": "utf-8",
+		"cleanup": [
+			"ul[@class='blogpost_tags']"
+		],
+		"modify": [
+			{
+				"type": "regex",
+				"pattern": "/(<a href=\")(\\/[^\\/])/",
+				"replace": "\\1https://paragonie.com\\2"
+			}
+		]
+	}
+}

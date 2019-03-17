@@ -1,47 +1,47 @@
 {
-  "japantimes.co.jp": {
-    "type": "xpath",
-    "xpath": [
-      "div[@class='padding_block']/header",
-      "div[@id='article_history']/ul/li[1]",
-      "div[@id='article_history']/ul/li[2]",
-      "div[@id='slideshow_and_video']",
-      "div[@class='entry']"
-    ],
-    "cleanup": [
-      "script",
-      "div[@class='clearfix']",
-      "div[@class='OUTBRAIN']",
-      "ul[@id='content_footer_menu']",
-      "div[@class='article_footer_ad']",
-      "div[@id='disqus_thread']",
-      "div[@id='taboola-below-article-thumbnails']",
-      "div[@class='jtarticle_related']",
-      "span[@id='fa-spinner']",
-      "ul[@class='single-sns-area']",
-      "div[@class='jt_content_ad']",
-      "h3[@class='single-post-categories']"
-    ],
-    "modify": [
-      {
-        "type": "replace",
-        "search": [
-          "<h5 class=\"writer\" role=\"author\">",
-          "</a></h5>",
-          "Online: <time>",
-          "Last Modified: <time>",
-          "</time>",
-          "<p class=\"credit\">Staff Writer</p>"
-        ],
-        "replace": [
-          "<h2>",
-          "</a></h2>",
-          "<h3>Online: ",
-          "<h3>Last Modified: ",
-          "</h3>",
-          "<h3>Staff Writer</h3>"
-        ]
-      }
-    ]
-  }
+	"japantimes.co.jp": {
+		"type": "xpath",
+		"xpath": [
+			"div[@class='padding_block']/header",
+			"div[@id='article_history']/ul/li[1]",
+			"div[@id='article_history']/ul/li[2]",
+			"div[@id='slideshow_and_video']",
+			"div[@class='entry']"
+		],
+		"cleanup": [
+			"script",
+			"div[@class='clearfix']",
+			"div[@class='OUTBRAIN']",
+			"ul[@id='content_footer_menu']",
+			"div[@class='article_footer_ad']",
+			"div[@id='disqus_thread']",
+			"div[@id='taboola-below-article-thumbnails']",
+			"div[@class='jtarticle_related']",
+			"span[@id='fa-spinner']",
+			"ul[@class='single-sns-area']",
+			"div[@class='jt_content_ad']",
+			"h3[@class='single-post-categories']"
+		],
+		"modify": [
+			{
+				"type": "replace",
+				"search": [
+					"<h5 class=\"writer\" role=\"author\">",
+					"</a></h5>",
+					"Online: <time>",
+					"Last Modified: <time>",
+					"</time>",
+					"<p class=\"credit\">Staff Writer</p>"
+				],
+				"replace": [
+					"<h2>",
+					"</a></h2>",
+					"<h3>Online: ",
+					"<h3>Last Modified: ",
+					"</h3>",
+					"<h3>Staff Writer</h3>"
+				]
+			}
+		]
+	}
 }

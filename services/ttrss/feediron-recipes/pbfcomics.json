@@ -1,11 +1,11 @@
 {
-  "pbfcomics.com": {
-    "type": "xpath",
-    "xpath": [
-      "article/div[contains(@class, 'comic_nav')]/h1[contains(@class, 'pbf-comic-title')]",
-      "div[@id='comic']/img"
-    ],
-    "start_element": "<h1>",
-    "join_element": "</h1>"
-  }
+	"pbfcomics.com": {
+		"type": "xpath",
+		"xpath": [
+			"article/div[contains(@class, 'comic_nav')]/h1[contains(@class, 'pbf-comic-title')]",
+			"div[@id='comic']/img"
+		],
+		"start_element": "<h1>",
+		"join_element": "</h1>"
+	}
 }

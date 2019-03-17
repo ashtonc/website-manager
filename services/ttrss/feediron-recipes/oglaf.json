@@ -1,23 +1,23 @@
 {
-  "oglaf.com": {
-    "type": "xpath",
-    "xpath": [
-      "title",
-      "img[@id='strip']",
-      "img[@id='strip']/@title"
-    ],
-    "start_element": "<h1>",
-    "modify": [
-      {
-        "type": "replace",
-        "search": "<img",
-        "replace": "</h1><img"
-      },
-      {
-        "type": "regex",
-        "pattern": "/\"\\/>(.*)/",
-        "replace": "\"\\/><p>\\1</p>"
-      }
-    ]
-  }
+	"oglaf.com": {
+		"type": "xpath",
+		"xpath": [
+			"title",
+			"img[@id='strip']",
+			"img[@id='strip']/@title"
+		],
+		"start_element": "<h1>",
+		"modify": [
+			{
+				"type": "replace",
+				"search": "<img",
+				"replace": "</h1><img"
+			},
+			{
+				"type": "regex",
+				"pattern": "/\"\\/>(.*)/",
+				"replace": "\"\\/><p>\\1</p>"
+			}
+		]
+	}
 }
